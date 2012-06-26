@@ -58,34 +58,25 @@ namespace inplace {
   template<typename    base_type,
            typename... possible_types>
   struct factory {
-  public:
     static_assert(sizeof...(possible_types) > 0, "possible_types ist leer");
     static_assert(pack::is_base_of_all<base_type, possible_types...>::value, "base_type ist nicht Basisklasse aller possible_types");
 
-    factory() = default;
+    static bool const has_copy_semantics = pack::applies_to_all<std::is_copy_constructible, possible_types...>::value;
+    static bool const has_move_semantics = pack::applies_to_all<std::is_move_constructible, possible_types...>::value;
+
+  public:
+    factory() noexcept = default;
 
     template<typename T, typename... Args>
     factory(T f, Args&&... args) {
       f(*this, std::forward<Args>(args)...);
     }
 
-    factory(typename std::enable_if<pack::applies_to_all<std::is_copy_constructible, possible_types...>::value, factory>::type const &other) {
-      *this = other;
-    }
+    factory(typename std::enable_if<has_copy_semantics, factory>::type const &other) { other.copy_to(*this); }
+    factory(typename std::enable_if<has_move_semantics, factory>::type      &&other) { other.move_to(*this); }
 
-    typename std::enable_if<pack::applies_to_all<std::is_copy_constructible, possible_types...>::value, factory>::type &operator=(factory const &other) {
-      other.copy_to(*this);
-      return *this;
-    }
-
-    factory(typename std::enable_if<pack::applies_to_all<std::is_move_constructible, possible_types...>::value, factory>::type &&other) {
-      other.move_to(*this);
-    }
-
-    typename std::enable_if<pack::applies_to_all<std::is_move_constructible, possible_types...>::value, factory>::type &operator=(factory &&other) {
-      other.move_to(*this);
-      return *this;
-    }
+    typename std::enable_if<has_copy_semantics, factory>::type &operator=(factory const &other) { other.copy_to(*this); return *this; }
+    typename std::enable_if<has_move_semantics, factory>::type &operator=(factory      &&other) { other.move_to(*this); return *this; }
 
     ~factory() noexcept {
       reset();
@@ -108,26 +99,26 @@ namespace inplace {
       new(storage()) T(std::forward<Args>(args)...);
 
       obj_ptr_ = static_cast<T*>(storage());
-      copy_to_backend = &copy_semantics<factory, pack::applies_to_all<std::is_copy_constructible, possible_types...>::value>::template copy<T>;
-      move_to_backend = &move_semantics<factory, pack::applies_to_all<std::is_copy_constructible, possible_types...>::value>::template move<T>;
+      copy_to_backend = &copy_semantics<factory, has_copy_semantics>::template copy<T>;
+      move_to_backend = &move_semantics<factory, has_move_semantics>::template move<T>;
     }
 
     bool is_initialized() const noexcept { return get_ptr() != 0; }
 
-    base_type *get_ptr() const {
+    base_type *get_ptr() const noexcept {
       return obj_ptr_;
     }
 
-    base_type &get() const {
+    base_type &get() const noexcept {
       assert(get_ptr() != 0);
       return *get_ptr();
     }
 
-    base_type *operator->() const { return get_ptr(); }
-    base_type &operator* () const { return get    (); }
+    base_type *operator->() const noexcept { return get_ptr(); }
+    base_type &operator* () const noexcept { return get    (); }
 
-    operator  void*() const { return  get_ptr(); }
-    bool operator !() const { return !is_initialized(); }
+    operator  void*() const noexcept { return  get_ptr(); }
+    bool operator !() const noexcept { return !is_initialized(); }
 
   private:
     friend class copy_semantics<factory, true>;
@@ -137,8 +128,8 @@ namespace inplace {
     typedef typename std::aligned_storage<geometry_type::space,
                                           geometry_type::alignment>::type storage_type;
 
-    void       *storage()       { return static_cast<void*>(&storage_); }
-    void const *storage() const { return static_cast<void const *>(&storage_); }
+    void       *storage()       noexcept { return static_cast<void*>(&storage_); }
+    void const *storage() const noexcept { return static_cast<void const *>(&storage_); }
 
     void copy_to(factory &other) const { copy_to_backend(*this, other); }
     void move_to(factory &other)       { move_to_backend(std::move(*this), other); }
