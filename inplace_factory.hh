@@ -24,7 +24,7 @@ namespace inplace {
     static std::size_t const alignment = 1;
   };
 
-  template<typename, bool, bool> struct copy_move_semantics {
+  template<typename T, bool = T::has_copy_semantics, bool = T::has_move_semantics> struct copy_move_semantics {
     template<typename>
     void set_type() { }
     void reset   () { }
@@ -160,7 +160,7 @@ namespace inplace {
     storage_type  storage_;
     base_type    *obj_ptr_ = 0;
 
-    copy_move_semantics<factory, has_copy_semantics, has_move_semantics> cpmov_sem_;
+    copy_move_semantics<factory> cpmov_sem_;
   };
 }
 
