@@ -33,7 +33,10 @@ struct D : A {
 };
 
 int main() {
-  inplace::factory<A, B, C> fct(
+  inplace::factory<A, B, C> fct;
+  fct.construct<B>(1);
+
+/*(
     [](inplace::factory<A, B, C> &fct, int n, int x) {
       if(n == 0) {
         fct.construct<B>(x);
@@ -42,26 +45,20 @@ int main() {
       }
     },
     0, 1);
-
-  if(fct) {
-    fct.get().foo();
-  }
+*/
+  fct.get().foo();
 
   fct.construct<C>();
-  if(fct) {
-    fct.get().foo();
-  }
+  fct.get().foo();
 
   inplace::factory<A, B, C> fct2(fct);
 
-  if(fct2) {
-    fct2.get().foo();
-  }
+  fct2.get().foo();
 
   fct2.construct<B>(2);
   fct = fct2;
 
-  if(fct) fct.get().foo();
+  fct.get().foo();
 
   {
     std::vector<inplace::factory<A, B, C>> v(10, fct);
@@ -72,16 +69,18 @@ int main() {
     v[3] = v[4] = v[6];
 
     for(auto &f : v) {
-      if(f) f.get().foo();
+      f.get().foo();
     }
   }
 
-  C c;
+//  inplace::factory<A, B, C> fct3(inplace::factory<A, B, C>([](inplace::factory<A, B, C> &f){f.construct<C>();}));
 
+  C c;
   fct.construct<C>(std::move(c));
+  fct.construct<C>(C());
 
   inplace::factory<A, B, C> fct3(std::move(fct));
-  if(fct3) fct3.get().foo();
+  fct3.get().foo();
 
   // fct.construct<D>();
 }
