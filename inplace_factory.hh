@@ -91,7 +91,7 @@ namespace inplace {
     static_assert(pack::is_base_of_all<base_type, possible_types...>::value, "base_type ist nicht Basisklasse aller possible_types");
 
     static bool const has_copy_semantics = pack::applies_to_all<std::is_copy_constructible, possible_types...>::value;
-    static bool const has_move_semantics = pack::applies_to_all<std::is_move_constructible, possible_types...>::value;
+    static bool const has_move_semantics = pack::applies_to_all<std::is_move_constructible, possible_types...>::value || has_copy_semantics;
 
   public:
     factory() noexcept = default;
@@ -124,7 +124,7 @@ namespace inplace {
       static_assert(pack::contains<T, possible_types...>::value, "Unzulaessiger Typ für inplace::factory");
 
       reset();
-      new(storage()) T(std::forward<Args>(args)...);
+      construct_backend<T>::construct(storage(), std::forward<Args>(args)...);
 
       obj_ptr_ = static_cast<T*>(storage());
       cpmov_sem_.template set_type<T>();
@@ -148,7 +148,12 @@ namespace inplace {
     bool operator !() const noexcept { return !is_initialized(); }
 
   private:
-    template<typename, bool, bool> friend class copy_move_semantics;
+    template<typename T, bool, bool> friend class copy_move_semantics;
+
+    template<typename T, bool = std::is_move_constructible<T>::value>
+    struct construct_backend           { template<typename... Args> static void construct(void *place, Args&&... args) { new(place) T(std::forward<Args>(args)...); } };
+    template<typename T>
+    struct construct_backend<T, false> { template<typename... Args> static void construct(void *place, Args&&... args) { new(place) T(                   args ...); } };
 
     typedef geometry<possible_types...>                                   geometry_type;
     typedef typename std::aligned_storage<geometry_type::space,

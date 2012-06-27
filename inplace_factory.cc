@@ -12,7 +12,9 @@ struct A {
 struct B : A{
   B(int i) : i_(i) { }
   B(B const &) = default;
-  B(B&&) { std::cout << "B&&\n"; }
+//  B(B&&) { std::cout << "B&&\n"; }
+  B(B&&) = delete;
+
   virtual void foo() const { std::cout << "B " << i_ << "\n"; }
   ~B() { std::cout << "~B\n"; }
   int i_;
