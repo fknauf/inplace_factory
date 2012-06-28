@@ -100,11 +100,11 @@ namespace inplace {
       f(*this, std::forward<Args>(args)...);
     }
 
-    factory(factory const &other) { other.cpmov_sem_.do_copy(                      other , *this); }
-    factory(factory     && other) { other.cpmov_sem_.do_move(std::forward<factory>(other), *this); }
+    factory(factory const &other) { other.cpmov_sem_.do_copy(                      other , *this);                }
+    factory(factory     && other) { other.cpmov_sem_.do_move(std::forward<factory>(other), *this); other.clear(); }
 
-    factory& operator=(factory const &other) { other.cpmov_sem_.do_copy(                      other , *this); return *this; }
-    factory& operator=(factory      &&other) { other.cpmov_sem_.do_move(std::forward<factory>(other), *this); return *this; }
+    factory& operator=(factory const &other) { other.cpmov_sem_.do_copy(                      other , *this);                return *this; }
+    factory& operator=(factory      &&other) { other.cpmov_sem_.do_move(std::forward<factory>(other), *this); other.clear(); return *this; }
 
     ~factory() noexcept {
       clear();
