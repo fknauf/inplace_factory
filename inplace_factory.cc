@@ -9,11 +9,11 @@ struct A {
 };
 
 struct B : A {
-  B(int i)          : i_(i)        { std::cout << "B()\n"; }
+  B(int i)          : i_(i)        { std::cout << "B(" << i << ")\n"; }
   B(B const &other) : i_(other.i_) { std::cout << "B(B const &)\n"; }
   B(B&&) = delete;
 
-  virtual void foo() const { std::cout << "B::foo() mit i_ = " << i_ << "\n"; }
+  virtual void foo() const { std::cout << "B::foo() mit i_ == " << i_ << "\n"; }
   ~B() { std::cout << "~B()\n"; }
 
 private:
@@ -94,6 +94,17 @@ int main() {
   factory_t fct4;
   fct4.construct<C>(std::move(c));
   fct4.construct<C>(C());
+
+  std::cout << "\nInitialisierungsfunktion\n\n";
+
+  factory_t fct5([](factory_t &f, int n, int x) {
+      if(n == 0) {
+        f.construct<B>(x);
+      } else {
+        f.construct<C>();
+      }
+    }, 0, 1);
+  fct5->foo();
 
   std::cout << "\nAufräumarbeiten\n\n";
 }
