@@ -5,7 +5,6 @@
 #include "pack_traits.hh"
 
 #include <cassert>
-#include <stdexcept>
 #include <type_traits>
 #include <utility>
 
@@ -27,48 +26,48 @@ namespace inplace {
   template<typename T, bool = T::has_copy_semantics, bool = T::has_move_semantics> struct copy_move_semantics {
     template<typename>
     void set_type() { }
-    void reset   () { }
+    void clear   () { }
   };
 
   template<typename factory_type> class copy_move_semantics<factory_type, true, false> {
   public:
     template<typename T>
     void set_type() { do_copy_ptr = &copy_move_semantics::copy_impl<T>; }
-    void reset   () { do_copy_ptr = &copy_move_semantics::copy_dummy  ; }
+    void clear   () { do_copy_ptr = &copy_move_semantics::copy_empty  ; }
 
     void do_copy(factory_type const &from, factory_type &to) const { do_copy_ptr(from, to); }
     // Wenn  move-Semantik nicht vorhanden ist, fallback auf copy.
     void do_move(factory_type      &&from, factory_type &to) const { do_copy_ptr(from, to); }
 
   private:
-    void (*do_copy_ptr)(factory_type const &from, factory_type &to) = copy_dummy;
+    void (*do_copy_ptr)(factory_type const &from, factory_type &to) = copy_empty;
 
     template<typename T>
     static void copy_impl (factory_type const &from, factory_type &to) { to.template construct<T>(*static_cast<T const *>(from.storage())); }
-    static void copy_dummy(factory_type const &    , factory_type &  ) { throw std::logic_error("inplace::factory enthaelt kein Objekt zum Kopieren"); }
+    static void copy_empty(factory_type const &    , factory_type &to) { to.clear(); }
   };
 
   template<typename factory_type> class copy_move_semantics<factory_type, false, true> {
   public:
     template<typename T>
     void set_type() { do_move_ptr = &copy_move_semantics::move_impl<T>; }
-    void reset   () { do_move_ptr = &copy_move_semantics::move_dummy  ; }
+    void clear   () { do_move_ptr = &copy_move_semantics::move_empty  ; }
 
     void do_move(factory_type &&from, factory_type &to) const { do_move_ptr(std::forward<factory_type>(from), to); }
 
   private:
-    void (*do_move_ptr)(factory_type &&from, factory_type &to) = move_dummy;
+    void (*do_move_ptr)(factory_type &&from, factory_type &to) = move_empty;
 
     template<typename T>
     static void move_impl (factory_type &&from, factory_type &to) { to.template construct<T>(std::move(*static_cast<T *>(from.storage()))); }
-    static void move_dummy(factory_type &&    , factory_type &  ) { throw std::logic_error("inplace::factory enthaelt kein Objekt zum Bewegen"); }
+    static void move_empty(factory_type &&    , factory_type &to) { to.clear(); }
   };
 
   template<typename factory_type> class copy_move_semantics<factory_type, true, true> {
   public:
-    void reset() {
-      cs_.reset();
-      ms_.reset();
+    void clear() {
+      cs_.clear();
+      ms_.clear();
     }
 
     template<typename T> void set_type() {
@@ -108,14 +107,14 @@ namespace inplace {
     factory& operator=(factory      &&other) { other.cpmov_sem_.do_move(std::forward<factory>(other), *this); return *this; }
 
     ~factory() noexcept {
-      reset();
+      clear();
     }
 
-    void reset() noexcept {
+    void clear() noexcept {
       if(obj_ptr_) {
         obj_ptr_->~base_type();
         obj_ptr_ = 0;
-        cpmov_sem_.reset();
+        cpmov_sem_.clear();
       }
     }
 
@@ -123,7 +122,7 @@ namespace inplace {
     void construct(Args&&... args) {
       static_assert(pack::contains<T, possible_types...>::value, "Unzulaessiger Typ für inplace::factory");
 
-      reset();
+      clear();
       construct_backend<T>::construct(storage(), std::forward<Args>(args)...);
 
       obj_ptr_ = static_cast<T*>(storage());
