@@ -90,7 +90,8 @@ namespace inplace {
     static_assert(pack::is_base_of_all<base_type, possible_types...>::value, "base_type ist nicht Basisklasse aller possible_types");
 
     static bool const has_copy_semantics = pack::applies_to_all<std::is_copy_constructible, possible_types...>::value;
-    static bool const has_move_semantics = pack::applies_to_all<std::is_move_constructible, possible_types...>::value || has_copy_semantics;
+    static bool const has_move_semantics = pack::applies_to_all<std::is_move_constructible, possible_types...>::value ||
+                    (has_copy_semantics && pack::applies_to_any<std::is_move_constructible, possible_types...>::value);
 
   public:
     factory() noexcept = default;

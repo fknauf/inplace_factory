@@ -24,6 +24,7 @@ struct C : A {
   C()          { std::cout << "C()\n"; }
   C(C const &) { std::cout << "C(C const &)\n"; }
   C(C&&)       { std::cout << "C(C&&)\n"; }
+//  C(C&&) = delete;
 
   virtual void foo() const { std::cout << "C::foo()\n"; }
   ~C() { std::cout << "~C()\n"; }
@@ -36,6 +37,10 @@ struct D : A {
 
 int main() {
   typedef inplace::factory<A, B, C> factory_t;
+
+  std::cout <<
+    "factory_t::has_copy_semantics == " << factory_t::has_copy_semantics << "\n"
+    "factory_t::has_move_semantics == " << factory_t::has_move_semantics << "\n\n";
 
   std::cout << "Konstruktion pv\n\n";
   factory_t fct;
