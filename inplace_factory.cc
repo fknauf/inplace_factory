@@ -93,6 +93,7 @@ int main() {
   C c;
   factory_t fct4;
   fct4.construct<C>(std::move(c));
+  fct4.construct<B>(B(4));
   fct4.construct<C>(C());
 
   std::cout << "\nInitialisierungsfunktion\n\n";
@@ -103,7 +104,7 @@ int main() {
       } else {
         f.construct<C>();
       }
-    }, 0, 1);
+    }, 0, 5);
   fct5->foo();
 
   std::cout << "\nAufräumarbeiten\n\n";
