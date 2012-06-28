@@ -5,84 +5,95 @@
 
 struct A {
   virtual void foo() const = 0;
-
   virtual ~A() { }
 };
 
-struct B : A{
-  B(int i) : i_(i) { }
-  B(B const &) = default;
-//  B(B&&) { std::cout << "B&&\n"; }
+struct B : A {
+  B(int i)          : i_(i)        { std::cout << "B()\n"; }
+  B(B const &other) : i_(other.i_) { std::cout << "B(B const &)\n"; }
   B(B&&) = delete;
 
-  virtual void foo() const { std::cout << "B " << i_ << "\n"; }
-  ~B() { std::cout << "~B\n"; }
+  virtual void foo() const { std::cout << "B::foo() mit i_ = " << i_ << "\n"; }
+  ~B() { std::cout << "~B()\n"; }
+
+private:
   int i_;
 };
 
 struct C : A {
-  C() = default;
-  C(C const &) = default;
-  C(C&&) { std::cout << "C&&\n"; }
+  C()          { std::cout << "C()\n"; }
+  C(C const &) { std::cout << "C(C const &)\n"; }
+  C(C&&)       { std::cout << "C(C&&)\n"; }
 
-  virtual void foo() const { std::cout << "C\n"; }
-  ~C() { std::cout << "~C\n"; }
+  virtual void foo() const { std::cout << "C::foo()\n"; }
+  ~C() { std::cout << "~C()\n"; }
 };
 
 struct D : A {
-  virtual void foo() const { std::cout << "D\n"; }
-  ~D() { std::cout << "~D\n"; }
+  virtual void foo() const { std::cout << "D::foo()\n"; }
+  ~D() { std::cout << "~D()\n"; }
 };
 
 int main() {
-  inplace::factory<A, B, C> fct;
+  typedef inplace::factory<A, B, C> factory_t;
+
+  std::cout << "Konstruktion pv\n\n";
+  factory_t fct;
+
   fct.construct<B>(1);
-
-/*(
-    [](inplace::factory<A, B, C> &fct, int n, int x) {
-      if(n == 0) {
-        fct.construct<B>(x);
-      } else {
-        fct.construct<C>();
-      }
-    },
-    0, 1);
-*/
-  fct.get().foo();
-
+  fct->foo();
   fct.construct<C>();
-  fct.get().foo();
+  fct->foo();
+  fct.construct<B>(2);
+  fct->foo();
 
-  inplace::factory<A, B, C> fct2(fct);
+  std::cout << "\nKopiersemantik\n\n";
 
-  fct2.get().foo();
-
-  fct2.construct<B>(2);
+  factory_t fct2(fct);
+  fct2->foo();
+  fct2.construct<C>();
   fct = fct2;
+  fct->foo();
 
-  fct.get().foo();
+  std::cout << "\nMovesemantik\n\n";
+
+  factory_t fct3(std::move(fct));
+  if(fct) {
+    std::cout << "fct ist nicht leer.\n";
+  } else if(!fct) {
+    std::cout << "fct ist leer und ops void* und ! funktionieren.\n";
+  }
+
+  fct3->foo();
+  fct2.construct<B>(3);
+  fct3 = std::move(fct2);
+
+  if(fct2) {
+    std::cout << "fct2 ist nicht leer.\n";
+  }
+
+  fct3->foo();
 
   {
-    std::vector<inplace::factory<A, B, C>> v(10, fct);
+    std::cout << "\nVektorspaß\n\n";
 
+    std::vector<factory_t> v(10, fct3);
     v[2].construct<C>();
     v[7] = v[2];
     v[6].construct<B>(10);
     v[3] = v[4] = v[6];
 
     for(auto &f : v) {
-      f.get().foo();
+      f->foo();
     }
   }
 
-//  inplace::factory<A, B, C> fct3(inplace::factory<A, B, C>([](inplace::factory<A, B, C> &f){f.construct<C>();}));
+  std::cout << "\nMove direkt\n\n";
 
   C c;
-  fct.construct<C>(std::move(c));
-  fct.construct<C>(C());
+  factory_t fct4;
+  fct4.construct<C>(std::move(c));
+  fct4.construct<C>(C());
 
-  inplace::factory<A, B, C> fct3(std::move(fct));
-  fct3.get().foo();
-
-  // fct.construct<D>();
+  std::cout << "\nAufräumarbeiten\n\n";
 }

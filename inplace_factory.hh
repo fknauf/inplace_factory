@@ -158,7 +158,7 @@ namespace inplace {
     typedef typename std::aligned_storage<geometry_type::space,
                                           geometry_type::alignment>::type storage_type;
 
-    void       *storage()       noexcept { return static_cast<void*>(&storage_); }
+    void       *storage()       noexcept { return static_cast<void       *>(&storage_); }
     void const *storage() const noexcept { return static_cast<void const *>(&storage_); }
 
     storage_type  storage_;
