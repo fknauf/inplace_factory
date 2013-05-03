@@ -104,6 +104,7 @@ namespace inplace {
     factory(factory const &other) { other.cpmov_sem_.do_copy(                      other , *this);                }
     factory(factory     && other) { other.cpmov_sem_.do_move(std::forward<factory>(other), *this); other.clear(); }
 
+    // operator= kann nicht sinnvoll operator== des Werttyps benutzen, weil dieser in den beiden Operanden verschieden sein kann.
     factory& operator=(factory const &other) { other.cpmov_sem_.do_copy(                      other , *this);                return *this; }
     factory& operator=(factory      &&other) { other.cpmov_sem_.do_move(std::forward<factory>(other), *this); other.clear(); return *this; }
 
@@ -144,16 +145,31 @@ namespace inplace {
     base_type *operator->() const noexcept { return get_ptr(); }
     base_type &operator* () const noexcept { return get    (); }
 
-    operator  void*() const noexcept { return  get_ptr(); }
-    bool operator !() const noexcept { return !is_initialized(); }
+    explicit operator bool() const noexcept { return  get_ptr(); }
+    bool operator!() const noexcept { return !is_initialized(); }
 
   private:
     template<typename T, bool, bool> friend class copy_move_semantics;
 
     template<typename T, bool = std::is_move_constructible<T>::value>
-    struct construct_backend           { template<typename... Args> static void construct(void *place, Args&&... args) { new(place) T(std::forward<Args>(args)...); } };
+    struct construct_backend {
+      template<typename... Args>
+      static void construct(void *place, Args&&... args) {
+	new(place) T(std::forward<Args>(args)...);
+      }
+    };
+
+    // Move-Semantik für nicht-bewegbare Typen möglich machen: fallback auf copy.
     template<typename T>
-    struct construct_backend<T, false> { template<typename... Args> static void construct(void *place, Args&&... args) { new(place) T(                   args ...); } };
+    struct construct_backend<T, false> {
+      template<typename... Args>
+      static void construct(void *place, Args&&... args) {
+	new(place) T(std::forward<Args>(args)...);
+      }
+      static void construct(void *place, T &&other) {
+	new(place) T(other);
+      }
+    };
 
     typedef geometry<possible_types...>                                   geometry_type;
     typedef typename std::aligned_storage<geometry_type::space,

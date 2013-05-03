@@ -8,7 +8,7 @@ struct A {
   virtual ~A() { }
 };
 
-struct B : A {
+struct B : virtual A {
   B(int i)          : i_(i)        { std::cout << "B(" << i << ")\n"; }
   B(B const &other) : i_(other.i_) { std::cout << "B(B const &)\n"; }
   B(B&&) = delete;
@@ -20,7 +20,7 @@ private:
   int i_;
 };
 
-struct C : A {
+struct C : virtual A {
   C()          { std::cout << "C()\n"; }
   C(C const &) { std::cout << "C(C const &)\n"; }
   C(C&&)       { std::cout << "C(C&&)\n"; }
@@ -30,13 +30,20 @@ struct C : A {
   ~C() { std::cout << "~C()\n"; }
 };
 
-struct D : A {
+struct D : virtual A {
+  D() { std::cout << "D::D()\n"; }
   virtual void foo() const { std::cout << "D::foo()\n"; }
   ~D() { std::cout << "~D()\n"; }
 };
 
+struct E : B, C {
+  E() : B(0), C() { std::cout << "E::E()\n"; }
+  virtual void foo() const { std::cout << "E::foo()\n"; }
+  ~E() { std::cout << "~E()\n"; }
+};
+
 int main() {
-  typedef inplace::factory<A, B, C> factory_t;
+  typedef inplace::factory<A, B, C, D, E> factory_t;
 
   std::cout <<
     "factory_t::has_copy_semantics == " << factory_t::has_copy_semantics << "\n"
@@ -111,6 +118,15 @@ int main() {
       }
     }, 0, 5);
   fct5->foo();
+
+  factory_t fct6;
+  fct6.construct<E>();
+  fct6->foo();
+  fct6.construct<E>();
+  fct6->foo();
+
+  factory_t fct7(fct6);
+  fct7->foo();
 
   std::cout << "\nAufräumarbeiten\n\n";
 }
