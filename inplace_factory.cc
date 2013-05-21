@@ -42,6 +42,17 @@ struct E : B, C {
   ~E() { std::cout << "~E()\n"; }
 };
 
+struct M {
+  M(int n) : n_(n) { }
+  M(M const &) = delete;
+  M(M&& other) {
+    n_ = other.n_;
+    other.n_ = 0;
+  }
+
+  int n_;
+};
+
 int main() {
   typedef inplace::factory<A, B, C, D, E> factory_t;
 
@@ -127,6 +138,21 @@ int main() {
 
   factory_t fct7(fct6);
   fct7->foo();
+
+  std::cout << "Tests mit move-, aber nicht kopierbarem Typ\n";
+
+  inplace::factory<M, M> fct8;
+  fct8.construct<M>(1);
+  std::cout << "8: " << fct8->n_ << '\n';
+  inplace::factory<M, M> fct9(std::move(fct8));
+  if(fct8) std::cout << "8: " << fct8->n_ << '\n';
+  if(fct9) std::cout << "9: " << fct9->n_ << '\n';
+  fct8 = std::move(fct9);
+  if(fct8) std::cout << "8: " << fct8->n_ << '\n';
+  if(fct9) std::cout << "9: " << fct9->n_ << '\n';
+  fct9.construct<M>(std::move(*fct8));
+  if(fct8) std::cout << "8: " << fct8->n_ << '\n';
+  if(fct9) std::cout << "9: " << fct9->n_ << '\n';
 
   std::cout << "\nAufräumarbeiten\n\n";
 }
