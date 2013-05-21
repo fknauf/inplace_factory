@@ -10,19 +10,22 @@
 #include <utility>
 
 namespace inplace {
-  template<typename... types> struct geometry;
+  // TODO: Durch std::aligned_union ersetzen, sobald libstdc++ das hat.
+  namespace detail {
+    template<typename... types> struct geometry;
 
-  template<typename head_type, typename... tail_types>
-  struct geometry<head_type, tail_types...> {
-    static std::size_t const space     = const_algo::max( sizeof(head_type), geometry<tail_types...>::space    );
-    static std::size_t const alignment = const_algo::lcm(alignof(head_type), geometry<tail_types...>::alignment);
-  };
+    template<typename head_type, typename... tail_types>
+    struct geometry<head_type, tail_types...> {
+      static std::size_t const space     = const_algo::max( sizeof(head_type), geometry<tail_types...>::space    );
+      static std::size_t const alignment = const_algo::lcm(alignof(head_type), geometry<tail_types...>::alignment);
+    };
 
-  template<>
-  struct geometry<> {
-    static std::size_t const space     = 0;
-    static std::size_t const alignment = 1;
-  };
+    template<>
+    struct geometry<> {
+      static std::size_t const space     = 0;
+      static std::size_t const alignment = 1;
+    };
+  }
 
   template<typename    base_type,
            typename... possible_types>
@@ -112,7 +115,7 @@ namespace inplace {
       }
     };
 
-    typedef geometry<possible_types...>                                   geometry_type;
+    typedef detail::geometry<possible_types...>                           geometry_type;
     typedef typename std::aligned_storage<geometry_type::space,
                                           geometry_type::alignment>::type storage_type;
 
