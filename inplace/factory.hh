@@ -46,7 +46,7 @@ namespace inplace {
     }
 
     factory(factory const &other) { other.cpmov_sem_.do_copy(                      other , *this);                }
-    factory(factory     && other) { other.cpmov_sem_.do_move(std::forward<factory>(other), *this); other.clear(); }
+    factory(factory      &&other) { other.cpmov_sem_.do_move(std::forward<factory>(other), *this); other.clear(); }
 
     // operator= kann nicht sinnvoll operator== des Werttyps benutzen, weil dieser in den beiden Operanden verschieden sein kann.
     factory& operator=(factory const &other) { other.cpmov_sem_.do_copy(                      other , *this);                return *this; }

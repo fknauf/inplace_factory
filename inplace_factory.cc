@@ -1,4 +1,4 @@
-#include "inplace_factory.hh"
+#include "inplace/factory.hh"
 
 #include <iostream>
 #include <vector>
