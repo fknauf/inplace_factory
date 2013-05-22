@@ -1,12 +1,10 @@
 #include <boost/test/unit_test.hpp>
-
 #include <inplace/factory.hh>
-#include <typeinfo>
 
 namespace {
   struct plain_base {
-    virtual int val() const = 0;
     virtual ~plain_base() { }
+    virtual int val() const = 0;
   };
 
   struct plain_child_1 : plain_base { virtual int val() const { return 1; } };
