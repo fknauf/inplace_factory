@@ -1,7 +1,7 @@
 #ifndef INCLUDED_INPLACE_FACTORY_HH
 #define INCLUDED_INPLACE_FACTORY_HH
 
-#include "const_algo.hh"
+#include "geometry.hh"
 #include "copy_move_semantics.hh"
 #include "pack_traits.hh"
 
@@ -10,23 +10,6 @@
 #include <utility>
 
 namespace inplace {
-  // TODO: Durch std::aligned_union ersetzen, sobald libstdc++ das hat.
-  namespace detail {
-    template<typename... types> struct geometry;
-
-    template<typename head_type, typename... tail_types>
-    struct geometry<head_type, tail_types...> {
-      static std::size_t const space     = const_algo::max( sizeof(head_type), geometry<tail_types...>::space    );
-      static std::size_t const alignment = const_algo::lcm(alignof(head_type), geometry<tail_types...>::alignment);
-    };
-
-    template<>
-    struct geometry<> {
-      static std::size_t const space     = 0;
-      static std::size_t const alignment = 1;
-    };
-  }
-
   template<typename    base_type,
            typename... possible_types>
   struct factory {
@@ -40,15 +23,15 @@ namespace inplace {
   public:
     factory() noexcept = default;
 
+    factory(factory const &other) { *this =                       other ; }
+    factory(factory      &&other) { *this = std::forward<factory>(other); }
+
     template<typename T, typename... Args>
     factory(T f, Args&&... args) {
       f(*this, std::forward<Args>(args)...);
     }
 
-    factory(factory const &other) { other.cpmov_sem_.do_copy(                      other , *this);                }
-    factory(factory      &&other) { other.cpmov_sem_.do_move(std::forward<factory>(other), *this); other.clear(); }
-
-    // operator= kann nicht sinnvoll operator== des Werttyps benutzen, weil dieser in den beiden Operanden verschieden sein kann.
+    // operator= kann nicht sinnvoll operator= des Werttyps benutzen, weil dieser in den beiden Operanden verschieden sein kann.
     factory& operator=(factory const &other) { other.cpmov_sem_.do_copy(                      other , *this);                return *this; }
     factory& operator=(factory      &&other) { other.cpmov_sem_.do_move(std::forward<factory>(other), *this); other.clear(); return *this; }
 
@@ -59,7 +42,7 @@ namespace inplace {
     void clear() noexcept {
       if(obj_ptr_) {
         obj_ptr_->~base_type();
-        obj_ptr_ = 0;
+        obj_ptr_ = nullptr;
         cpmov_sem_.clear();
       }
     }
@@ -75,14 +58,14 @@ namespace inplace {
       cpmov_sem_.template set_type<T>();
     }
 
-    bool is_initialized() const noexcept { return get_ptr() != 0; }
+    bool is_initialized() const noexcept { return get_ptr() != nullptr; }
 
     base_type *get_ptr() const noexcept {
       return obj_ptr_;
     }
 
     base_type &get() const noexcept {
-      assert(get_ptr() != 0);
+      assert(get_ptr() != nullptr);
       return *get_ptr();
     }
 
@@ -115,6 +98,7 @@ namespace inplace {
       }
     };
 
+    // TODO: Durch std::aligned_union ersetzen, sobald libstdc++ das hat.
     typedef detail::geometry<possible_types...>                           geometry_type;
     typedef typename std::aligned_storage<geometry_type::space,
                                           geometry_type::alignment>::type storage_type;
@@ -123,7 +107,7 @@ namespace inplace {
     void const *storage() const noexcept { return static_cast<void const *>(&storage_); }
 
     storage_type  storage_;
-    base_type    *obj_ptr_ = 0;
+    base_type    *obj_ptr_ = nullptr;
 
     detail::copy_move_semantics<factory> cpmov_sem_;
   };

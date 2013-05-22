@@ -3,7 +3,7 @@
 TARGET = test
 
 CPPFLAGS = -I..
-CXXFLAGS = -Wall -Wextra -pedantic -std=c++11
+CXXFLAGS = -Wall -Wextra -pedantic -std=c++11 -g -O0
 
 DEPFILE = .depend
 SRCS    = test_main.cc group_plain.cc
