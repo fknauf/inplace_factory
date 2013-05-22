@@ -1,0 +1,6 @@
+syntax: glob
+*.o
+.depend
+*/.depend
+tests/test
+inplace_factory
