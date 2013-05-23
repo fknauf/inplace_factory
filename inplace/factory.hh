@@ -16,10 +16,10 @@ namespace inplace {
     static_assert(sizeof...(possible_types) > 0, "possible_types ist leer");
     static_assert(pack::is_base_of_all<base_type, possible_types...>::value, "base_type ist nicht Basisklasse aller possible_types");
 
-    static bool const has_copy_semantics = pack::applies_to_all<std::is_copy_constructible, possible_types...>::value;
-    static bool const has_move_semantics = pack::applies_to_all<pack::trait_or_reduce<std::is_move_constructible,
-                                                                                      std::is_copy_constructible>::template trait,
-                                                                possible_types...>::value;
+    static bool const needs_copy_semantics = pack::applies_to_all<std::is_copy_constructible, possible_types...>::value;
+    static bool const needs_move_semantics
+      = pack::applies_to_all<pack::trait_or_reduce<std::is_move_constructible, std::is_copy_constructible>::template trait, possible_types...>::value &&
+        pack::applies_to_any<std::is_move_constructible, possible_types...>::value;
 
   public:
     factory_base() noexcept = default;
@@ -147,8 +147,10 @@ namespace inplace {
   template<typename    base_type,
            typename... possible_types>
   class factory : public factory_base<base_type, possible_types...>,
-                  private factory_ctors_controller<factory_base<base_type, possible_types...>::has_copy_semantics,
-                                                   factory_base<base_type, possible_types...>::has_move_semantics>
+                  private factory_ctors_controller<factory_base<base_type, possible_types...>::needs_copy_semantics,
+                                                   pack::applies_to_all<pack::trait_or_reduce<std::is_move_constructible,
+                                                                                              std::is_copy_constructible>::template trait,
+                                                                        possible_types...>::value>
   {
   public:
     factory() = default;

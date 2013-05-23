@@ -39,8 +39,8 @@ namespace {
 BOOST_AUTO_TEST_SUITE(nomove_suite)
 
 BOOST_AUTO_TEST_CASE(NoMoveProperties) {
-  BOOST_CHECK(factory_t::has_copy_semantics);
-  BOOST_CHECK(factory_t::has_move_semantics);
+  BOOST_CHECK( factory_t::needs_copy_semantics);
+  BOOST_CHECK(!factory_t::needs_move_semantics);
 }
 
 BOOST_AUTO_TEST_CASE(NoMoveCopyCtor) {

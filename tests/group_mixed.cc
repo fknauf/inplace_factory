@@ -59,8 +59,8 @@ BOOST_AUTO_TEST_SUITE(mixed_suite)
 BOOST_AUTO_TEST_CASE(mixed_onlies) {
   typedef inplace::factory<mixed_base, mixed_copy_only, mixed_move_only> factory_t;
 
-  BOOST_CHECK(!factory_t::has_copy_semantics);
-  BOOST_CHECK( factory_t::has_move_semantics);
+  BOOST_CHECK(!factory_t::needs_copy_semantics);
+  BOOST_CHECK( factory_t::needs_move_semantics);
 
   BOOST_CHECK(!std::is_copy_constructible<factory_t>::value);
   BOOST_CHECK( std::is_move_constructible<factory_t>::value);
@@ -106,8 +106,8 @@ BOOST_AUTO_TEST_CASE(mixed_noncopyables) {
                            mixed_move_only,
                            mixed_neither> factory_t;
 
-  BOOST_CHECK(!factory_t::has_copy_semantics);
-  BOOST_CHECK(!factory_t::has_move_semantics);
+  BOOST_CHECK(!factory_t::needs_copy_semantics);
+  BOOST_CHECK(!factory_t::needs_move_semantics);
 
   BOOST_CHECK(!std::is_copy_constructible<factory_t>::value);
   BOOST_CHECK(!std::is_move_constructible<factory_t>::value);
@@ -120,8 +120,8 @@ BOOST_AUTO_TEST_CASE(mixed_nonmoveables) {
                            mixed_copy_only,
                            mixed_neither> factory_t;
 
-  BOOST_CHECK(!factory_t::has_copy_semantics);
-  BOOST_CHECK(!factory_t::has_move_semantics);
+  BOOST_CHECK(!factory_t::needs_copy_semantics);
+  BOOST_CHECK(!factory_t::needs_move_semantics);
 
   BOOST_CHECK(!std::is_copy_constructible<factory_t>::value);
   BOOST_CHECK(!std::is_move_constructible<factory_t>::value);
@@ -136,8 +136,8 @@ BOOST_AUTO_TEST_CASE(mixed_all) {
                            mixed_move_only,
                            mixed_neither> factory_t;
 
-  BOOST_CHECK(!factory_t::has_copy_semantics);
-  BOOST_CHECK(!factory_t::has_move_semantics);
+  BOOST_CHECK(!factory_t::needs_copy_semantics);
+  BOOST_CHECK(!factory_t::needs_move_semantics);
 
   BOOST_CHECK(!std::is_copy_constructible<factory_t>::value);
   BOOST_CHECK(!std::is_move_constructible<factory_t>::value);
@@ -148,8 +148,8 @@ BOOST_AUTO_TEST_CASE(mixed_all) {
 BOOST_AUTO_TEST_CASE(mixed_neither_test) {
   typedef inplace::factory<mixed_base, mixed_neither> factory_t;
 
-  BOOST_CHECK(!factory_t::has_copy_semantics);
-  BOOST_CHECK(!factory_t::has_move_semantics);
+  BOOST_CHECK(!factory_t::needs_copy_semantics);
+  BOOST_CHECK(!factory_t::needs_move_semantics);
 
   BOOST_CHECK(!std::is_copy_constructible<factory_t>::value);
   BOOST_CHECK(!std::is_move_constructible<factory_t>::value);

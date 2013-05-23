@@ -37,6 +37,22 @@ namespace pack {
   };
 
   ////////////////////////////////
+  // applies_to_any
+  ////////////////////////////////
+
+  template<template<typename> class, typename...> struct applies_to_any;
+
+  template<template<typename> class predicate, typename T, typename... Pack>
+  struct applies_to_any<predicate, T, Pack...> {
+    static bool const value = predicate<T>::value || applies_to_any<predicate, Pack...>::value;
+  };
+
+  template<template<typename> class predicate>
+  struct applies_to_any<predicate> {
+    static bool const value = false;
+  };
+
+  ////////////////////////////////
   // is_base_of_all
   ////////////////////////////////
 

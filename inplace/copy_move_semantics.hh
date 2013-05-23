@@ -5,7 +5,7 @@
 
 namespace inplace {
   namespace detail {
-    template<typename T, bool = T::has_copy_semantics, bool = T::has_move_semantics> struct copy_move_semantics {
+    template<typename T, bool = T::needs_copy_semantics, bool = T::needs_move_semantics> struct copy_move_semantics {
       template<typename>
       void set_type() { }
       void clear   () { }
@@ -48,13 +48,13 @@ namespace inplace {
     template<typename factory_type> class copy_move_semantics<factory_type, true, true> {
     public:
       void clear() {
-	cs_.clear();
-	ms_.clear();
+        cs_.clear();
+        ms_.clear();
       }
 
       template<typename T> void set_type() {
-	cs_.template set_type<T>();
-	ms_.template set_type<T>();
+        cs_.template set_type<T>();
+        ms_.template set_type<T>();
       }
 
       void do_copy(factory_type const &from, factory_type &to) const { cs_.do_copy(                           from , to); }
