@@ -13,6 +13,7 @@ namespace {
 
   template<int i>
   struct nomove : nomove_base {
+    nomove() = default;
     nomove(nomove const &) = default;
     nomove(nomove      &&) = delete;
     virtual int val() const { return i; }
@@ -97,6 +98,67 @@ BOOST_AUTO_TEST_CASE(NoMoveConstructMove) {
   BOOST_REQUIRE(fct);
   BOOST_CHECK_EQUAL(fct->val(), 10);
   BOOST_CHECK_EQUAL(orig.val(), 10);
+}
+
+BOOST_AUTO_TEST_CASE(NoMoveCopyAssign) {
+  BOOST_CHECK(std::is_copy_assignable<factory_t>::value);
+
+  factory_t fct;
+  fct.construct<nomove_x>(10);
+
+  BOOST_REQUIRE(fct);
+  BOOST_REQUIRE(fct->val() == 10);
+
+  factory_t fct2;
+
+  fct2 = fct;
+
+  BOOST_REQUIRE(fct);
+  BOOST_CHECK  (fct ->val() == 10);
+  BOOST_REQUIRE(fct2);
+  BOOST_CHECK  (fct2->val() == 10);
+
+  fct2.construct<nomove<1>>();
+
+  BOOST_REQUIRE(fct2);
+  BOOST_CHECK  (fct2->val());
+
+  fct2 = fct;
+
+  BOOST_REQUIRE(fct);
+  BOOST_CHECK  (fct ->val() == 10);
+  BOOST_REQUIRE(fct2);
+  BOOST_CHECK  (fct2->val() == 10);
+}
+
+BOOST_AUTO_TEST_CASE(NoMoveMoveAssign) {
+  BOOST_CHECK(std::is_move_assignable<factory_t>::value);
+
+  factory_t fct;
+  fct.construct<nomove_x>(10);
+
+  BOOST_REQUIRE(fct);
+  BOOST_REQUIRE(fct->val() == 10);
+
+  factory_t fct2;
+
+  fct2 = std::move(fct);
+
+  BOOST_CHECK  (!fct);
+  BOOST_REQUIRE(fct2);
+  BOOST_CHECK  (fct2->val() == 10);
+
+  fct2.construct<nomove<1>>();
+
+  BOOST_REQUIRE(fct2);
+  BOOST_CHECK  (fct2->val());
+
+  fct.construct<nomove_x>(10);
+  fct2 = std::move(fct);
+
+  BOOST_CHECK  (!fct);
+  BOOST_REQUIRE(fct2);
+  BOOST_CHECK  (fct2->val() == 10);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

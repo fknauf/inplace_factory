@@ -15,6 +15,7 @@ namespace {
 
   template<int i>
   struct nocopy : nocopy_base {
+    nocopy() = default;
     nocopy(nocopy const &) = delete;
     nocopy(nocopy      &&) = default;
     virtual int val() const { return i; }
@@ -58,6 +59,39 @@ BOOST_AUTO_TEST_CASE(NoCopyMoveCtor) {
   BOOST_REQUIRE(fct->val() == 10);
 
   factory_t fct2(std::move(fct));
+
+  BOOST_CHECK  (!fct);
+  BOOST_REQUIRE(fct2);
+  BOOST_CHECK  (fct2->val() == 10);
+}
+
+BOOST_AUTO_TEST_CASE(NoCopyCopyAssign) {
+  BOOST_CHECK(!std::is_copy_assignable<factory_t>::value);
+}
+
+BOOST_AUTO_TEST_CASE(NoCopyMoveAssign) {
+  BOOST_CHECK(std::is_move_assignable<factory_t>::value);
+
+  factory_t fct;
+  fct.construct<nocopy_x>(10);
+
+  BOOST_REQUIRE(fct);
+  BOOST_REQUIRE(fct->val() == 10);
+
+  factory_t fct2;
+  fct2 = std::move(fct);
+
+  BOOST_CHECK  (!fct);
+  BOOST_REQUIRE(fct2);
+  BOOST_CHECK  (fct2->val() == 10);
+
+  fct2.construct<nocopy<1>>();
+
+  BOOST_REQUIRE(fct2);
+  BOOST_CHECK  (fct2->val() == 1);
+
+  fct.construct<nocopy_x>(10);
+  fct2 = std::move(fct);
 
   BOOST_CHECK  (!fct);
   BOOST_REQUIRE(fct2);
