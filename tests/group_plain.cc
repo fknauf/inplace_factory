@@ -42,7 +42,7 @@ namespace {
                            plain_child_x_moveable> factory_t;
 }
 
-BOOST_AUTO_TEST_SUITE(plain)
+BOOST_AUTO_TEST_SUITE(plain_suite)
 
 BOOST_AUTO_TEST_CASE(PlainProperties) {
   BOOST_CHECK(factory_t::has_copy_semantics);

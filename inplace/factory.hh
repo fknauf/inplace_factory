@@ -12,7 +12,7 @@
 namespace inplace {
   template<typename    base_type,
            typename... possible_types>
-  struct factory {
+  struct factory_base {
     static_assert(sizeof...(possible_types) > 0, "possible_types ist leer");
     static_assert(pack::is_base_of_all<base_type, possible_types...>::value, "base_type ist nicht Basisklasse aller possible_types");
 
@@ -21,21 +21,16 @@ namespace inplace {
                     (has_copy_semantics && pack::applies_to_any<std::is_move_constructible, possible_types...>::value);
 
   public:
-    factory() noexcept = default;
+    factory_base() noexcept = default;
 
-    factory(factory const &other) { *this =                       other ; }
-    factory(factory      &&other) { *this = std::forward<factory>(other); }
-
-    template<typename T, typename... Args>
-    factory(T f, Args&&... args) {
-      f(*this, std::forward<Args>(args)...);
-    }
+    factory_base(factory_base const &other) { *this =                       other ; }
+    factory_base(factory_base      &&other) { *this = std::forward<factory_base>(other); }
 
     // operator= kann nicht sinnvoll operator= des Werttyps benutzen, weil dieser in den beiden Operanden verschieden sein kann.
-    factory& operator=(factory const &other) { other.cpmov_sem_.do_copy(                      other , *this);                return *this; }
-    factory& operator=(factory      &&other) { other.cpmov_sem_.do_move(std::forward<factory>(other), *this); other.clear(); return *this; }
+    factory_base& operator=(factory_base const &other) { other.cpmov_sem_.do_copy(                      other , *this);                return *this; }
+    factory_base& operator=(factory_base      &&other) { other.cpmov_sem_.do_move(std::forward<factory_base>(other), *this); other.clear(); return *this; }
 
-    ~factory() noexcept {
+    ~factory_base() noexcept {
       clear();
     }
 
@@ -49,7 +44,7 @@ namespace inplace {
 
     template<typename T, typename... Args>
     void construct(Args&&... args) {
-      static_assert(pack::contains<T, possible_types...>::value, "Unzulaessiger Typ für inplace::factory");
+      static_assert(pack::contains<T, possible_types...>::value, "Unzulaessiger Typ für inplace::factory_base");
 
       clear();
       construct_backend<T>::construct(storage(), std::forward<Args>(args)...);
@@ -109,7 +104,44 @@ namespace inplace {
     storage_type  storage_;
     base_type    *obj_ptr_ = nullptr;
 
-    detail::copy_move_semantics<factory> cpmov_sem_;
+    detail::copy_move_semantics<factory_base> cpmov_sem_;
+  };
+
+  template<bool copy, bool move>
+  struct factory_ctors_controller {
+  };
+
+  template<> struct factory_ctors_controller<false, false> {
+    factory_ctors_controller() = default;
+    factory_ctors_controller(factory_ctors_controller const &) = delete;
+    factory_ctors_controller(factory_ctors_controller      &&) = delete;
+
+    factory_ctors_controller &operator=(factory_ctors_controller const &) = delete;
+    factory_ctors_controller &operator=(factory_ctors_controller      &&) = delete;
+  };
+
+  template<> struct factory_ctors_controller<false, true> {
+    factory_ctors_controller() = default;
+    factory_ctors_controller(factory_ctors_controller const &) = delete;
+    factory_ctors_controller(factory_ctors_controller      &&) = default;
+
+    factory_ctors_controller &operator=(factory_ctors_controller const &) = delete;
+    factory_ctors_controller &operator=(factory_ctors_controller      &&) = default;
+  };
+
+  template<typename    base_type,
+           typename... possible_types>
+  class factory : public factory_base<base_type, possible_types...>,
+                  private factory_ctors_controller<factory_base<base_type, possible_types...>::has_copy_semantics,
+                                                   factory_base<base_type, possible_types...>::has_move_semantics>
+  {
+  public:
+    factory() = default;
+
+    template<typename T, typename... Args>
+    factory(T f, Args&&... args) {
+      f(*this, std::forward<Args>(args)...);
+    }
   };
 }
 

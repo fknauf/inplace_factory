@@ -2,6 +2,7 @@
 
 TARGET = inplace_factory
 
+CXX = clang++
 CXXFLAGS = -Wall -Wextra -pedantic -std=c++11
 
 DEPFILE = .depend

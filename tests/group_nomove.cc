@@ -36,7 +36,7 @@ namespace {
                            nomove_x> factory_t;
 }
 
-BOOST_AUTO_TEST_SUITE(nomove)
+BOOST_AUTO_TEST_SUITE(nomove_suite)
 
 BOOST_AUTO_TEST_CASE(NoMoveProperties) {
   BOOST_CHECK(factory_t::has_copy_semantics);
