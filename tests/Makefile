@@ -2,11 +2,13 @@
 
 TARGET = test
 
+CXX = clang++
+
 CPPFLAGS = -I..
 CXXFLAGS = -Wall -Wextra -pedantic -std=c++11 -g -O0
 
 DEPFILE = .depend
-SRCS    = test_main.cc group_plain.cc group_nomove.cc
+SRCS    = test_main.cc group_plain.cc group_nocopy.cc group_nomove.cc
 OBJS    = $(SRCS:%.cc=%.o)
 LDFLAGS = -lboost_unit_test_framework
 

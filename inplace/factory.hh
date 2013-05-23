@@ -76,13 +76,13 @@ namespace inplace {
     bool operator!() const noexcept { return !is_initialized(); }
 
   private:
-    template<typename T, bool, bool> friend class detail::copy_move_semantics;
+    template<typename T, bool, bool> friend struct detail::copy_move_semantics;
 
     template<typename T, bool = std::is_move_constructible<T>::value>
     struct construct_backend {
       template<typename... Args>
       static void construct(void *place, Args&&... args) {
-	new(place) T(std::forward<Args>(args)...);
+        new(place) T(std::forward<Args>(args)...);
       }
     };
 
@@ -91,10 +91,10 @@ namespace inplace {
     struct construct_backend<T, false> {
       template<typename... Args>
       static void construct(void *place, Args&&... args) {
-	new(place) T(std::forward<Args>(args)...);
+        new(place) T(std::forward<Args>(args)...);
       }
       static void construct(void *place, T &&other) {
-	new(place) T(other);
+        new(place) T(other);
       }
     };
 

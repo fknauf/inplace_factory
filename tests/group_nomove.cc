@@ -15,7 +15,7 @@ namespace {
   struct nomove : nomove_base {
     nomove(nomove const &) = default;
     nomove(nomove      &&) = delete;
-    virtual int val() const { return i; } 
+    virtual int val() const { return i; }
   };
 
   class nomove_x : public nomove_base {
@@ -30,9 +30,9 @@ namespace {
   };
 
   typedef inplace::factory<nomove_base,
-			   nomove<1>,
-			   nomove<2>,
-			   nomove_x> factory_t;
+                           nomove<1>,
+                           nomove<2>,
+                           nomove_x> factory_t;
 }
 
 BOOST_AUTO_TEST_SUITE(nomove)
@@ -43,6 +43,8 @@ BOOST_AUTO_TEST_CASE(NoMoveProperties) {
 }
 
 BOOST_AUTO_TEST_CASE(NoMoveCopyCtor) {
+  BOOST_CHECK(std::is_copy_constructible<factory_t>::value);
+
   factory_t fct;
   fct.construct<nomove_x>(10);
 
@@ -58,6 +60,8 @@ BOOST_AUTO_TEST_CASE(NoMoveCopyCtor) {
 }
 
 BOOST_AUTO_TEST_CASE(NoMoveMoveCtor) {
+  BOOST_CHECK(std::is_move_constructible<factory_t>::value);
+
   factory_t fct;
   fct.construct<nomove_x>(10);
 
@@ -96,4 +100,3 @@ BOOST_AUTO_TEST_CASE(NoMoveConstructMove) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
-

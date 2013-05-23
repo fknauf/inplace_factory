@@ -36,10 +36,10 @@ namespace {
   };
 
   typedef inplace::factory<plain_base,
-			   plain_child_1,
-			   plain_child_2,
-			   plain_child_x,
-			   plain_child_x_moveable> factory_t;
+                           plain_child_1,
+                           plain_child_2,
+                           plain_child_x,
+                           plain_child_x_moveable> factory_t;
 }
 
 BOOST_AUTO_TEST_SUITE(plain)
@@ -56,6 +56,8 @@ BOOST_AUTO_TEST_CASE(PlainDefaultCtor) {
 }
 
 BOOST_AUTO_TEST_CASE(PlainCopyCtor) {
+  BOOST_CHECK(std::is_copy_constructible<factory_t>::value);
+
   factory_t fct;
   fct.construct<plain_child_x>(10);
 
@@ -71,6 +73,8 @@ BOOST_AUTO_TEST_CASE(PlainCopyCtor) {
 }
 
 BOOST_AUTO_TEST_CASE(PlainMoveCtor) {
+  BOOST_CHECK(std::is_move_constructible<factory_t>::value);
+
   factory_t fct;
   fct.construct<plain_child_x>(10);
 
@@ -107,9 +111,9 @@ BOOST_AUTO_TEST_CASE(PlainLambdaCtor) {
 
   factory_t fct3([](factory_t &f, int n) {
       if(n < 10) {
-	f.construct<plain_child_1>();
+        f.construct<plain_child_1>();
       } else {
-	f.construct<plain_child_x>(n);
+        f.construct<plain_child_x>(n);
       }
     }, 5);
 
