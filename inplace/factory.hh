@@ -28,8 +28,22 @@ namespace inplace {
     factory_base(factory_base      &&other) { *this = std::forward<factory_base>(other); }
 
     // operator= kann nicht sinnvoll operator= des Werttyps benutzen, weil dieser in den beiden Operanden verschieden sein kann.
-    factory_base& operator=(factory_base const &other) { other.cpmov_sem_.do_copy(                           other , *this);                return *this; }
-    factory_base& operator=(factory_base      &&other) { other.cpmov_sem_.do_move(std::forward<factory_base>(other), *this); other.clear(); return *this; }
+    factory_base& operator=(factory_base const &other) {
+      if(&other != this) {
+        other.cpmov_sem_.do_copy(other , *this);
+      }
+
+      return *this;
+    }
+
+    factory_base& operator=(factory_base &&other) {
+      if(&other != this) {
+        other.cpmov_sem_.do_move(std::forward<factory_base>(other), *this);
+        other.clear();
+      }
+
+      return *this;
+    }
 
     ~factory_base() noexcept {
       clear();

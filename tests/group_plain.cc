@@ -15,6 +15,8 @@ namespace {
     plain_child_x(int x) : x_(x) { }
     virtual int val() const { return x_; }
 
+    virtual ~plain_child_x() { x_ = -1; }
+
   private:
     int x_;
   };
@@ -119,6 +121,56 @@ BOOST_AUTO_TEST_CASE(PlainLambdaCtor) {
 
   BOOST_REQUIRE(fct3);
   BOOST_CHECK(fct3->val() == 1);
+}
+
+BOOST_AUTO_TEST_CASE(PlainCopyAssign) {
+  factory_t fct, fct2;
+
+  fct.construct<plain_child_x>(10);
+
+  fct2 = fct;
+
+  BOOST_REQUIRE(fct );
+  BOOST_REQUIRE(fct2);
+  BOOST_CHECK_EQUAL(fct ->val(), 10);
+  BOOST_CHECK_EQUAL(fct2->val(), 10);
+
+  fct.construct<plain_child_1>();
+  fct = fct2;
+
+  BOOST_REQUIRE(fct );
+  BOOST_REQUIRE(fct2);
+  BOOST_CHECK_EQUAL(fct ->val(), 10);
+  BOOST_CHECK_EQUAL(fct2->val(), 10);
+
+  fct = fct;
+
+  BOOST_REQUIRE(fct );
+  BOOST_CHECK_EQUAL(fct ->val(), 10);
+}
+
+BOOST_AUTO_TEST_CASE(PlainMoveAssign) {
+  factory_t fct, fct2;
+
+  fct.construct<plain_child_x>(10);
+
+  fct2 = std::move(fct);
+
+  BOOST_REQUIRE(!fct );
+  BOOST_REQUIRE( fct2);
+  BOOST_CHECK_EQUAL(fct2->val(), 10);
+
+  fct.construct<plain_child_1>();
+  fct = std::move(fct2);
+
+  BOOST_REQUIRE( fct );
+  BOOST_REQUIRE(!fct2);
+  BOOST_CHECK_EQUAL(fct->val(), 10);
+
+  fct = fct;
+
+  BOOST_REQUIRE(fct);
+  BOOST_CHECK_EQUAL(fct ->val(), 10);
 }
 
 BOOST_AUTO_TEST_CASE(PlainConstruct) {

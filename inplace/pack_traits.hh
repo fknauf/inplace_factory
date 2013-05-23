@@ -21,22 +21,6 @@ namespace pack {
   };
 
   ////////////////////////////////
-  // is_base_of_all
-  ////////////////////////////////
-
-  template<typename, typename...> struct is_base_of_all;
-
-  template<typename T, typename U, typename... Pack>
-  struct is_base_of_all<T, U, Pack...> {
-    static bool const value = std::is_base_of<T, U>::value && is_base_of_all<T, Pack...>::value;
-  };
-
-  template<typename T, typename U>
-  struct is_base_of_all<T, U> {
-    static bool const value = std::is_base_of<T, U>::value;
-  };
-
-  ////////////////////////////////
   // applies_to_all
   ////////////////////////////////
 
@@ -53,20 +37,22 @@ namespace pack {
   };
 
   ////////////////////////////////
-  // applies_to_any
+  // is_base_of_all
   ////////////////////////////////
 
-  template<template<typename> class, typename...> struct applies_to_any;
-
-  template<template<typename> class predicate, typename T, typename... Pack>
-  struct applies_to_any<predicate, T, Pack...> {
-    static bool const value = predicate<T>::value || applies_to_any<predicate, Pack...>::value;
+  template<template<typename, typename> class binary_trait, typename T> struct trait_bind1st {
+    template<typename U> struct trait {
+      static bool const value = binary_trait<T, U>::value;
+    };
   };
 
-  template<template<typename> class predicate>
-  struct applies_to_any<predicate> {
-    static bool const value = false;
+  template<typename base, typename... types> struct is_base_of_all {
+    static bool const value = applies_to_all<trait_bind1st<std::is_base_of, base>::template trait, types...>::value;
   };
+
+  ////////////////////////////////
+  // trait_or_reduce
+  ////////////////////////////////
 
   template<template<typename> class...>
   struct trait_or_reduce {
