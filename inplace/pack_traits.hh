@@ -67,6 +67,21 @@ namespace pack {
   struct applies_to_any<predicate> {
     static bool const value = false;
   };
+
+  template<template<typename> class...>
+  struct trait_or_reduce {
+    template<typename T> struct trait {
+      static bool const value = false;
+    };
+  };
+
+  template<template<typename> class    front_condition,
+           template<typename> class... tail_conditions>
+  struct trait_or_reduce<front_condition, tail_conditions...> {
+    template<typename T> struct trait {
+      static bool const value = front_condition<T>::value || trait_or_reduce<tail_conditions...>::template trait<T>::value;
+    };
+  };
 }
 
 #endif

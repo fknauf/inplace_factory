@@ -8,8 +8,15 @@ CXX = g++-4.8
 CPPFLAGS = -I..
 CXXFLAGS = -Wall -Wextra -pedantic -std=c++11 -g -O0
 
+SRCS    = \
+  test_main.cc \
+  group_plain.cc \
+  group_mixed.cc \
+  group_nocopy.cc \
+  group_nomove.cc \
+  group_nocopy_nomove.cc
+
 DEPFILE = .depend
-SRCS    = test_main.cc group_plain.cc group_nocopy.cc group_nomove.cc
 OBJS    = $(SRCS:%.cc=%.o)
 LDFLAGS = -lboost_unit_test_framework
 

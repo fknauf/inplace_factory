@@ -17,17 +17,18 @@ namespace inplace {
     static_assert(pack::is_base_of_all<base_type, possible_types...>::value, "base_type ist nicht Basisklasse aller possible_types");
 
     static bool const has_copy_semantics = pack::applies_to_all<std::is_copy_constructible, possible_types...>::value;
-    static bool const has_move_semantics = pack::applies_to_all<std::is_move_constructible, possible_types...>::value ||
-                    (has_copy_semantics && pack::applies_to_any<std::is_move_constructible, possible_types...>::value);
+    static bool const has_move_semantics = pack::applies_to_all<pack::trait_or_reduce<std::is_move_constructible,
+                                                                                      std::is_copy_constructible>::template trait,
+                                                                possible_types...>::value;
 
   public:
     factory_base() noexcept = default;
 
-    factory_base(factory_base const &other) { *this =                       other ; }
+    factory_base(factory_base const &other) { *this =                            other ; }
     factory_base(factory_base      &&other) { *this = std::forward<factory_base>(other); }
 
     // operator= kann nicht sinnvoll operator= des Werttyps benutzen, weil dieser in den beiden Operanden verschieden sein kann.
-    factory_base& operator=(factory_base const &other) { other.cpmov_sem_.do_copy(                      other , *this);                return *this; }
+    factory_base& operator=(factory_base const &other) { other.cpmov_sem_.do_copy(                           other , *this);                return *this; }
     factory_base& operator=(factory_base      &&other) { other.cpmov_sem_.do_move(std::forward<factory_base>(other), *this); other.clear(); return *this; }
 
     ~factory_base() noexcept {
