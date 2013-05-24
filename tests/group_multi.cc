@@ -131,7 +131,7 @@ BOOST_AUTO_TEST_CASE(MultiMoveAssign) {
   fct.construct <multi_sandwich>();
   fct2.construct<multi_front   >();
 
-  fct2 = std::move(fct) ;
+  fct2 = std::move(fct );
   fct3 = std::move(fct2);
 
   BOOST_REQUIRE(!fct );
