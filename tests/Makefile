@@ -10,6 +10,7 @@ CXXFLAGS = -Wall -Wextra -pedantic -std=c++11 -g -O0
 
 SRCS     =               \
   test_main.cc           \
+  group_exceptions.cc    \
   group_mixed.cc         \
   group_multi.cc         \
   group_nocopy.cc        \
