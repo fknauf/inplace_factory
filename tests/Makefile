@@ -16,7 +16,8 @@ SRCS     =               \
   group_nocopy.cc        \
   group_nocopy_nomove.cc \
   group_nomove.cc        \
-  group_plain.cc
+  group_plain.cc         \
+  group_references.cc
 
 DEPFILE  = .depend
 OBJS     = $(SRCS:%.cc=%.o)
