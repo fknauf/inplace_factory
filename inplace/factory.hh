@@ -10,16 +10,27 @@
 #include <utility>
 
 namespace inplace {
+  namespace detail {
+    template<typename... possible_types> struct require_copy_semantics {
+      static bool const value = pack::applies_to_all<std::is_copy_constructible, possible_types...>::value;
+    };
+
+    template<typename... possible_types> struct require_move_semantics {
+      static bool const value = pack::applies_to_all<pack::trait_or_reduce<std::is_move_constructible, std::is_copy_constructible>::template trait, possible_types...>::value &&
+                                pack::applies_to_any<std::is_move_constructible, possible_types...>::value;
+    };
+  }
+
   template<typename    base_type,
            typename... possible_types>
-  struct factory_base {
+  class factory_base
+    // EBO, wenn möglich.
+    : private detail::copy_move_semantics<factory_base<base_type, possible_types...>,
+                                          detail::require_copy_semantics<possible_types...>::value,
+                                          detail::require_move_semantics<possible_types...>::value>
+  {
     static_assert(sizeof...(possible_types) > 0, "possible_types ist leer");
     static_assert(pack::is_base_of_all<base_type, possible_types...>::value, "base_type ist nicht Basisklasse aller possible_types");
-
-    static bool const needs_copy_semantics = pack::applies_to_all<std::is_copy_constructible, possible_types...>::value;
-    static bool const needs_move_semantics
-      = pack::applies_to_all<pack::trait_or_reduce<std::is_move_constructible, std::is_copy_constructible>::template trait, possible_types...>::value &&
-        pack::applies_to_any<std::is_move_constructible, possible_types...>::value;
 
   public:
     factory_base() noexcept = default;
@@ -30,7 +41,7 @@ namespace inplace {
     // operator= kann nicht sinnvoll operator= des Werttyps benutzen, weil dieser in den beiden Operanden verschieden sein kann.
     factory_base& operator=(factory_base const &other) {
       if(&other != this) {
-        other.cpmov_sem_.do_copy(other , *this);
+        other.cpmov_type::do_copy(other , *this);
       }
 
       return *this;
@@ -38,7 +49,7 @@ namespace inplace {
 
     factory_base& operator=(factory_base &&other) {
       if(&other != this) {
-        other.cpmov_sem_.do_move(std::forward<factory_base>(other), *this);
+        other.cpmov_type::do_move(std::forward<factory_base>(other), *this);
         other.clear();
       }
 
@@ -53,7 +64,7 @@ namespace inplace {
       if(obj_ptr_) {
         obj_ptr_->~base_type();
         obj_ptr_ = nullptr;
-        cpmov_sem_.clear();
+        cpmov_type::clear();
       }
     }
 
@@ -65,7 +76,7 @@ namespace inplace {
       construct_backend<T>::construct(storage(), std::forward<Args>(args)...);
 
       obj_ptr_ = static_cast<T*>(storage());
-      cpmov_sem_.template set_type<T>();
+      cpmov_type::template set_type<T>();
     }
 
     bool is_initialized() const noexcept { return get_ptr() != nullptr; }
@@ -112,14 +123,15 @@ namespace inplace {
     typedef detail::geometry<possible_types...>                           geometry_type;
     typedef typename std::aligned_storage<geometry_type::space,
                                           geometry_type::alignment>::type storage_type;
+    typedef detail::copy_move_semantics<factory_base,
+                                        detail::require_copy_semantics<possible_types...>::value,
+                                        detail::require_move_semantics<possible_types...>::value> cpmov_type;
 
     void       *storage()       noexcept { return static_cast<void       *>(&storage_); }
     void const *storage() const noexcept { return static_cast<void const *>(&storage_); }
 
     storage_type  storage_;
     base_type    *obj_ptr_ = nullptr;
-
-    detail::copy_move_semantics<factory_base> cpmov_sem_;
   };
 
   template<bool copy, bool move>
@@ -147,7 +159,7 @@ namespace inplace {
   template<typename    base_type,
            typename... possible_types>
   class factory : public factory_base<base_type, possible_types...>,
-                  private factory_ctors_controller<factory_base<base_type, possible_types...>::needs_copy_semantics,
+                  private factory_ctors_controller<detail::require_copy_semantics<possible_types...>::value,
                                                    pack::applies_to_all<pack::trait_or_reduce<std::is_move_constructible,
                                                                                               std::is_copy_constructible>::template trait,
                                                                         possible_types...>::value>

@@ -9,7 +9,7 @@ CPPFLAGS = -I..
 CXXFLAGS = -Wall -Wextra -pedantic -std=c++11 -g -O0
 
 SRCS     =               \
-  test_main.cc           \
+  $(TARGET).cc           \
   group_exceptions.cc    \
   group_mixed.cc         \
   group_multi.cc         \
@@ -21,7 +21,7 @@ SRCS     =               \
 
 DEPFILE  = .depend
 OBJS     = $(SRCS:%.cc=%.o)
-LDFLAGS  = -lboost_unit_test_framework
+LDLIBS   = -lboost_unit_test_framework
 
 .PHONY: all dep clean distclean check
 
@@ -33,7 +33,7 @@ $(DEPFILE): $(SRCS)
 sinclude $(DEPFILE)
 
 $(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $+
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $+ $(LOADLIBES) $(LDLIBS)
 
 clean:
 	rm -f $(OBJS) $(TARGET)

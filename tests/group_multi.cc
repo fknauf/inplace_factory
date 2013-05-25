@@ -58,9 +58,6 @@ namespace {
 BOOST_AUTO_TEST_SUITE(multi_suite)
 
 BOOST_AUTO_TEST_CASE(MultiProperties) {
-  BOOST_CHECK(factory_t::needs_copy_semantics);
-  BOOST_CHECK(factory_t::needs_move_semantics);
-
   BOOST_CHECK(std::is_copy_constructible<factory_t>::value);
   BOOST_CHECK(std::is_move_constructible<factory_t>::value);
   BOOST_CHECK(std::is_copy_assignable   <factory_t>::value);

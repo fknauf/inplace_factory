@@ -46,11 +46,6 @@ namespace {
 
 BOOST_AUTO_TEST_SUITE(plain_suite)
 
-BOOST_AUTO_TEST_CASE(PlainProperties) {
-  BOOST_CHECK(factory_t::needs_copy_semantics);
-  BOOST_CHECK(factory_t::needs_move_semantics);
-}
-
 BOOST_AUTO_TEST_CASE(PlainDefaultCtor) {
   factory_t fct;
 

@@ -5,7 +5,7 @@
 
 namespace inplace {
   namespace detail {
-    template<typename T, bool = T::needs_copy_semantics, bool = T::needs_move_semantics> struct copy_move_semantics {
+    template<typename T, bool, bool> struct copy_move_semantics {
       template<typename>
       void set_type() { }
       void clear   () { }
