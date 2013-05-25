@@ -15,8 +15,12 @@ namespace inplace {
       static bool const value = pack::applies_to_all<std::is_copy_constructible, possible_types...>::value;
     };
 
+    template<typename... possible_types> struct offer_move_semantics {
+      static bool const value = pack::applies_to_all<pack::trait_or_reduce<std::is_move_constructible, std::is_copy_constructible>::template trait, possible_types...>::value;
+    };
+
     template<typename... possible_types> struct require_move_semantics {
-      static bool const value = pack::applies_to_all<pack::trait_or_reduce<std::is_move_constructible, std::is_copy_constructible>::template trait, possible_types...>::value &&
+      static bool const value = offer_move_semantics<possible_types...>::value &&
                                 pack::applies_to_any<std::is_move_constructible, possible_types...>::value;
     };
   }
@@ -160,9 +164,7 @@ namespace inplace {
            typename... possible_types>
   class factory : public factory_base<base_type, possible_types...>,
                   private factory_ctors_controller<detail::require_copy_semantics<possible_types...>::value,
-                                                   pack::applies_to_all<pack::trait_or_reduce<std::is_move_constructible,
-                                                                                              std::is_copy_constructible>::template trait,
-                                                                        possible_types...>::value>
+                                                   detail::offer_move_semantics  <possible_types...>::value>
   {
   public:
     factory() = default;
