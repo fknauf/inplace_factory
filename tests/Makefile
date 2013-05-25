@@ -23,7 +23,7 @@ DEPFILE  = .depend
 OBJS     = $(SRCS:%.cc=%.o)
 LDFLAGS  = -lboost_unit_test_framework
 
-.PHONY: all dep clean distclean
+.PHONY: all dep clean distclean check
 
 all: dep $(TARGET)
 
@@ -40,3 +40,6 @@ clean:
 
 distclean: clean
 	rm -f $(DEPFILE) *~
+
+check: $(TARGET)
+	valgrind ./$(TARGET)
