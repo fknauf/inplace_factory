@@ -56,9 +56,11 @@ struct M {
 int main() {
   typedef inplace::factory<A, B, C, D, E> factory_t;
 
+  /*
   std::cout <<
     "factory_t::has_copy_semantics == " << factory_t::has_copy_semantics << "\n"
     "factory_t::has_move_semantics == " << factory_t::has_move_semantics << "\n\n";
+  */
 
   std::cout << "Konstruktion pv\n\n";
   factory_t fct;

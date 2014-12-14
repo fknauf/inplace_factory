@@ -11,7 +11,6 @@ namespace {
     virtual int &val() const = 0;
   };
 
-  int default_ref;
   struct ref_impossible : std::exception { };
   struct ref_null       : std::exception { };
 
@@ -29,9 +28,9 @@ namespace {
 
     virtual int &val() const {
       if(!ptr_) {
-	throw ref_null();
+        throw ref_null();
       }
-      return *ptr_; 
+      return *ptr_;
     }
 
   private:
@@ -39,7 +38,7 @@ namespace {
   };
 
   typedef inplace::factory<reference_base,
-			   reference_holder>
+                           reference_holder>
   factory_t;
 }
 

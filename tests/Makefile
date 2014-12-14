@@ -2,8 +2,8 @@
 
 TARGET   = test
 
-CXX      = g++-4.8
-#CXX      = clang++
+#CXX      = g++
+CXX      = clang++
 
 CPPFLAGS = -I..
 CXXFLAGS = -Wall -Wextra -pedantic -std=c++11 -g -O0
