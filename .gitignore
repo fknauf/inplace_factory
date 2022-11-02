@@ -1,0 +1,11 @@
+*.o
+.depend
+*/.depend
+tests/test
+inplace_factory
+CMakeCache.txt
+CMakeFiles
+Makefile
+cmake_install.cmake
+bin/
+lib/
