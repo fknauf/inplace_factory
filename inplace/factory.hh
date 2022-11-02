@@ -40,7 +40,7 @@ namespace inplace {
     // so we always use constructors for assignment.
     factory &operator=(factory const &other) requires detail::require_copy_semantics_v<possible_types...> {
       if(&other != this) {
-        other.cpmov_type::do_copy(other , *this);
+        other.cpmov_type::do_copy(other, *this);
       }
 
       return *this;
@@ -77,7 +77,9 @@ namespace inplace {
       cpmov_type::template set_type<T>();
     }
 
-    bool is_initialized() const noexcept { return get_ptr() != nullptr; }
+    bool is_initialized() const noexcept {
+      return get_ptr() != nullptr;
+    }
 
     base_type *get_ptr() const noexcept {
       return obj_ptr_;
@@ -88,11 +90,17 @@ namespace inplace {
       return *get_ptr();
     }
 
-    base_type *operator->() const noexcept { return get_ptr(); }
-    base_type &operator* () const noexcept { return get    (); }
+    base_type *operator->() const noexcept {
+      return get_ptr();
+    }
 
-    explicit operator bool() const noexcept { return  get_ptr(); }
-    bool operator!() const noexcept { return !is_initialized(); }
+    base_type &operator*() const noexcept {
+      return get();
+    }
+
+    explicit operator bool() const noexcept {
+      return is_initialized();
+    }
 
   private:
     template<typename T, bool, bool> friend struct detail::copy_move_semantics;
