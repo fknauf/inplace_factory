@@ -18,7 +18,7 @@ namespace inplace {
       void clear   () { do_copy_ptr = &copy_move_semantics::copy_empty  ; }
 
       void do_copy(factory_type const &from, factory_type &to) const { do_copy_ptr(from, to); }
-      // Wenn  move-Semantik nicht vorhanden ist, fallback auf copy.
+      // fallback to copy if move semantics are unavailable
       void do_move(factory_type      &&from, factory_type &to) const { do_copy_ptr(from, to); }
 
     private:

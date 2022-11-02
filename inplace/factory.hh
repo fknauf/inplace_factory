@@ -1,9 +1,7 @@
 #ifndef INCLUDED_INPLACE_FACTORY_HH
 #define INCLUDED_INPLACE_FACTORY_HH
 
-#include "geometry.hh"
 #include "copy_move_semantics.hh"
-#include "pack_traits.hh"
 
 #include <cassert>
 #include <type_traits>
@@ -11,18 +9,22 @@
 
 namespace inplace {
   namespace detail {
-    template<typename... possible_types> struct require_copy_semantics {
-      static bool const value = pack::applies_to_all<std::is_copy_constructible, possible_types...>::value;
+    template<template<typename> class... input_traits>
+    struct trait_or {
+      template<typename T> using trait = std::disjunction<input_traits<T>...>;
+      template<typename T> static constexpr bool trait_v = trait<T>::value;
     };
 
-    template<typename... possible_types> struct offer_move_semantics {
-      static bool const value = pack::applies_to_all<pack::trait_or_reduce<std::is_move_constructible, std::is_copy_constructible>::template trait, possible_types...>::value;
-    };
+    template<typename... possible_types>
+    using require_copy_semantics = std::conjunction<std::is_copy_constructible<possible_types>...>;
 
-    template<typename... possible_types> struct require_move_semantics {
-      static bool const value = offer_move_semantics<possible_types...>::value &&
-                                pack::applies_to_any<std::is_move_constructible, possible_types...>::value;
-    };
+    template<typename... possible_types>
+    using offer_move_semantics = std::conjunction<trait_or<std::is_move_constructible,
+                                                           std::is_copy_constructible>::template trait<possible_types>...>;
+
+    template<typename... possible_types>
+    using require_move_semantics = std::conjunction<offer_move_semantics<possible_types...>,
+                                                    std::disjunction<std::is_move_constructible<possible_types>...>>;
   }
 
   template<typename    base_type,
@@ -33,8 +35,8 @@ namespace inplace {
                                           detail::require_copy_semantics<possible_types...>::value,
                                           detail::require_move_semantics<possible_types...>::value>
   {
-    static_assert(sizeof...(possible_types) > 0, "possible_types ist leer");
-    static_assert(pack::is_base_of_all<base_type, possible_types...>::value, "base_type ist nicht Basisklasse aller possible_types");
+    static_assert(sizeof...(possible_types) > 0, "possible_types is empty");
+    static_assert(std::conjunction_v<std::is_base_of<base_type, possible_types>...>, "base_type is not base class of all possible_types");
 
   public:
     factory_base() noexcept = default;
@@ -74,7 +76,7 @@ namespace inplace {
 
     template<typename T, typename... Args>
     void construct(Args&&... args) {
-      static_assert(pack::contains<T, possible_types...>::value, "Unzulaessiger Typ für inplace::factory_base");
+      static_assert(std::disjunction_v<std::is_same<T, possible_types>...>, "attempted to construct invalid type in inplace::factory_base");
 
       clear();
       construct_backend<T>::construct(storage(), std::forward<Args>(args)...);
@@ -124,12 +126,10 @@ namespace inplace {
     };
 
     // TODO: Durch std::aligned_union ersetzen, sobald libstdc++ das hat.
-    typedef detail::geometry<possible_types...>                           geometry_type;
-    typedef typename std::aligned_storage<geometry_type::space,
-                                          geometry_type::alignment>::type storage_type;
-    typedef detail::copy_move_semantics<factory_base,
-                                        detail::require_copy_semantics<possible_types...>::value,
-                                        detail::require_move_semantics<possible_types...>::value> cpmov_type;
+    using storage_type = std::aligned_union_t<1, possible_types...>;
+    using cpmov_type = detail::copy_move_semantics<factory_base,
+                                                   detail::require_copy_semantics<possible_types...>::value,
+                                                   detail::require_move_semantics<possible_types...>::value>;
 
     void       *storage()       noexcept { return static_cast<void       *>(&storage_); }
     void const *storage() const noexcept { return static_cast<void const *>(&storage_); }
