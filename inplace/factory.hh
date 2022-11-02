@@ -73,7 +73,7 @@ namespace inplace {
     requires allowed_type<T>
     base_type *construct(Args&&... args) {
       clear();
-      obj_ptr_ = construct_backend<T>::construct(storage(), std::forward<Args>(args)...);
+      obj_ptr_ = do_construct<T>(std::forward<Args>(args)...);
       cpmov_handler_.template set_type<T>();
 
       return obj_ptr_;
@@ -107,17 +107,15 @@ namespace inplace {
   private:
     template<typename T, bool, bool> friend struct detail::copy_move_semantics;
 
-    template<typename T>
-    struct construct_backend {
-      template<typename... Args>
-      static T *construct(void *place, Args&&... args) {
-        return new(place) T(std::forward<Args>(args)...);
-      }
+    template<typename T, typename... Args>
+    T *do_construct(Args&&... args) {
+      return new(storage()) T(std::forward<Args>(args)...);
+    }
 
-      // For non-moveable types: move construction falls back to copy
-      static T *construct(void *place, T &&other) requires (!std::is_move_constructible_v<T>) {
-        return new(place) T(other);
-      }
+    // For non-moveable types: move construction falls back to copy
+    template<typename T>
+    T *do_construct(T &&other) requires (!std::is_move_constructible_v<T>) {
+      return new(storage()) T(other);
     };
 
     void       *storage()       noexcept { return storage_; }
