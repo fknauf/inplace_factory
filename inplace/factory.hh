@@ -3,8 +3,10 @@
 
 #include "copy_move_semantics.hh"
 
+#include <algorithm>
 #include <cassert>
 #include <concepts>
+#include <cstddef>
 #include <type_traits>
 #include <utility>
 
@@ -71,9 +73,7 @@ namespace inplace {
     requires allowed_type<T>
     void construct(Args&&... args) {
       clear();
-      construct_backend<T>::construct(storage(), std::forward<Args>(args)...);
-
-      obj_ptr_ = static_cast<T*>(storage());
+      obj_ptr_ = construct_backend<T>::construct(storage(), std::forward<Args>(args)...);
       cpmov_handler_.template set_type<T>();
     }
 
@@ -108,29 +108,33 @@ namespace inplace {
     template<typename T>
     struct construct_backend {
       template<typename... Args>
-      static void construct(void *place, Args&&... args) {
-        new(place) T(std::forward<Args>(args)...);
+      static T *construct(void *place, Args&&... args) {
+        return new(place) T(std::forward<Args>(args)...);
       }
 
       // For non-moveable types: move construction falls back to copy
-      static void construct(void *place, T &&other) requires (!std::is_move_constructible_v<T>) {
-        new(place) T(other);
+      static T *construct(void *place, T &&other) requires (!std::is_move_constructible_v<T>) {
+        return new(place) T(other);
       }
     };
 
-    using storage_type = std::aligned_union_t<1, possible_types...>;
-    using cpmov_type = detail::copy_move_semantics<factory,
-                                                   detail::require_copy_semantics_v<possible_types...>,
-                                                   detail::require_move_semantics_v<possible_types...>>;
+    void       *storage()       noexcept { return storage_; }
+    void const *storage() const noexcept { return storage_; }
 
-    void       *storage()       noexcept { return static_cast<void       *>(&storage_); }
-    void const *storage() const noexcept { return static_cast<void const *>(&storage_); }
+    alignas(possible_types...)
+    std::byte storage_[std::max({sizeof(possible_types)...})];
 
-    storage_type  storage_;
-    base_type    *obj_ptr_ = nullptr;
+    // pointer-to-base referencing the object constructed in storage_. This is necessary
+    // because of multiple inheritance: if base_type is not the concrete type's first base
+    // class, then static_cast<base_type*>(storage()) will give the wrong address.
+    base_type *obj_ptr_ = nullptr;
 
     // cpmov_handler_ is empty when neither copy nor move are supported.
-    [[no_unique_address]] cpmov_type cpmov_handler_;
+    [[no_unique_address]]
+    detail::copy_move_semantics<factory,
+                                detail::require_copy_semantics_v<possible_types...>,
+                                detail::require_move_semantics_v<possible_types...>>
+    cpmov_handler_;
   };
 }
 
