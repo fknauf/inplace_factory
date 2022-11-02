@@ -4,12 +4,13 @@
 #include "copy_move_semantics.hh"
 
 #include <cassert>
+#include <concepts>
 #include <type_traits>
 #include <utility>
 
 // In-place factory, i.e. sort of a polymorphic variant.
 //
-// This is useful when the overhead of dynamic allocation has to be avoided but runtime polymorph
+// This is useful when the overhead of dynamic allocation has to be avoided but runtime polymorphy
 // is still desired.
 
 namespace inplace {
@@ -17,46 +18,47 @@ namespace inplace {
     template<template<typename> class... input_traits>
     struct trait_or {
       template<typename T> using trait = std::disjunction<input_traits<T>...>;
-      template<typename T> static constexpr bool trait_v = trait<T>::value;
     };
 
     // Type-traits to decide whether and how to offer copy/move semantics. See copy_move_semantics.hh for details
 
     template<typename... possible_types>
-    using require_copy_semantics = std::conjunction<std::is_copy_constructible<possible_types>...>;
+    inline constexpr bool require_copy_semantics_v = std::conjunction_v<std::is_copy_constructible<possible_types>...>;
 
     template<typename... possible_types>
-    using offer_move_semantics = std::conjunction<trait_or<std::is_move_constructible,
-                                                           std::is_copy_constructible>::template trait<possible_types>...>;
+    inline constexpr bool offer_move_semantics_v = std::conjunction_v<trait_or<std::is_move_constructible,
+                                                                               std::is_copy_constructible>::template trait<possible_types>...>;
 
     template<typename... possible_types>
-    using require_move_semantics = std::conjunction<offer_move_semantics<possible_types...>,
-                                                    std::disjunction<std::is_move_constructible<possible_types>...>>;
+    inline constexpr bool require_move_semantics_v = offer_move_semantics_v<possible_types...> && std::disjunction_v<std::is_move_constructible<possible_types>...>;
   }
 
   // Most of the implementation is in factory_base. The reason that this is a class template of its own is constructor visibility
   // which is handled by the frontend. This avoids SFINAE hackery; factory_base just enables more operations than the frontend
   // is going to use, and we'll disable the undesirables there.
-  template<typename    base_type,
-           typename... possible_types>
-  class factory_base
+  template<typename base_type, std::derived_from<base_type>... possible_types>
+  class factory
     // EBO, wenn möglich.
-    : private detail::copy_move_semantics<factory_base<base_type, possible_types...>,
-                                          detail::require_copy_semantics<possible_types...>::value,
-                                          detail::require_move_semantics<possible_types...>::value>
+    : private detail::copy_move_semantics<factory<base_type, possible_types...>,
+                                          detail::require_copy_semantics_v<possible_types...>,
+                                          detail::require_move_semantics_v<possible_types...>>
   {
     static_assert(sizeof...(possible_types) > 0, "possible_types is empty");
-    static_assert(std::conjunction_v<std::is_base_of<base_type, possible_types>...>, "base_type is not base class of all possible_types");
 
   public:
-    factory_base() noexcept = default;
+    factory() noexcept = default;
 
-    factory_base(factory_base const &other) { *this =                            other ; }
-    factory_base(factory_base      &&other) { *this = std::forward<factory_base>(other); }
+    factory(factory const &other) requires detail::require_copy_semantics_v<possible_types...> { *this =                       other ; }
+    factory(factory      &&other) requires detail::  offer_move_semantics_v<possible_types...> { *this = std::forward<factory>(other); }
+
+    template<typename... Args>
+    factory(std::invocable<factory&, Args...> auto &&f, Args&&... args) {
+      f(*this, std::forward<Args>(args)...);
+    }
 
     // operator= cannot sensibly use the value types; operator= because the other factory may contain a different type,
     // so we always use constructors for assignment.
-    factory_base& operator=(factory_base const &other) {
+    factory &operator=(factory const &other) requires detail::require_copy_semantics_v<possible_types...> {
       if(&other != this) {
         other.cpmov_type::do_copy(other , *this);
       }
@@ -64,16 +66,16 @@ namespace inplace {
       return *this;
     }
 
-    factory_base& operator=(factory_base &&other) {
+    factory &operator=(factory &&other) requires detail::offer_move_semantics_v<possible_types...>  {
       if(&other != this) {
-        other.cpmov_type::do_move(std::forward<factory_base>(other), *this);
+        other.cpmov_type::do_move(std::forward<factory>(other), *this);
         other.clear();
       }
 
       return *this;
     }
 
-    ~factory_base() noexcept {
+    ~factory() noexcept {
       clear();
     }
 
@@ -86,9 +88,8 @@ namespace inplace {
     }
 
     template<typename T, typename... Args>
+    requires std::disjunction_v<std::is_same<T, possible_types>...>
     void construct(Args&&... args) {
-      static_assert(std::disjunction_v<std::is_same<T, possible_types>...>, "attempted to construct invalid type in inplace::factory_base");
-
       clear();
       construct_backend<T>::construct(storage(), std::forward<Args>(args)...);
 
@@ -137,58 +138,15 @@ namespace inplace {
     };
 
     using storage_type = std::aligned_union_t<1, possible_types...>;
-    using cpmov_type = detail::copy_move_semantics<factory_base,
-                                                   detail::require_copy_semantics<possible_types...>::value,
-                                                   detail::require_move_semantics<possible_types...>::value>;
+    using cpmov_type = detail::copy_move_semantics<factory,
+                                                   detail::require_copy_semantics_v<possible_types...>,
+                                                   detail::require_move_semantics_v<possible_types...>>;
 
     void       *storage()       noexcept { return static_cast<void       *>(&storage_); }
     void const *storage() const noexcept { return static_cast<void const *>(&storage_); }
 
     storage_type  storage_;
     base_type    *obj_ptr_ = nullptr;
-  };
-
-  // Control which constructors can be generated by the frontend factory class template.
-
-  // default case: All allowed. Note: if copy is allowed, then move is always allowed.
-  template<bool copy, bool move>
-  struct factory_ctors_controller {
-  };
-
-  // Neither copy nor move supported
-  template<> struct factory_ctors_controller<false, false> {
-    factory_ctors_controller() = default;
-    factory_ctors_controller(factory_ctors_controller const &) = delete;
-    factory_ctors_controller(factory_ctors_controller      &&) = delete;
-
-    factory_ctors_controller &operator=(factory_ctors_controller const &) = delete;
-    factory_ctors_controller &operator=(factory_ctors_controller      &&) = delete;
-  };
-
-  // move supported, copy not supported.
-  template<> struct factory_ctors_controller<false, true> {
-    factory_ctors_controller() = default;
-    factory_ctors_controller(factory_ctors_controller const &) = delete;
-    factory_ctors_controller(factory_ctors_controller      &&) = default;
-
-    factory_ctors_controller &operator=(factory_ctors_controller const &) = delete;
-    factory_ctors_controller &operator=(factory_ctors_controller      &&) = default;
-  };
-
-  // Frontend factory class. Basically factory_base with limited constructor/assignemnt operator visibility
-  template<typename    base_type,
-           typename... possible_types>
-  class factory : public factory_base<base_type, possible_types...>,
-                  private factory_ctors_controller<detail::require_copy_semantics<possible_types...>::value,
-                                                   detail::offer_move_semantics  <possible_types...>::value>
-  {
-  public:
-    factory() = default;
-
-    template<typename T, typename... Args>
-    factory(T f, Args&&... args) {
-      f(*this, std::forward<Args>(args)...);
-    }
   };
 }
 
