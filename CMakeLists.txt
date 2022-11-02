@@ -23,7 +23,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-add_executable(test
+enable_testing()
+
+add_executable(factory_test
   tests/test.cc
   tests/group_exceptions.cc
   tests/group_mixed.cc
@@ -34,8 +36,9 @@ add_executable(test
   tests/group_plain.cc
   tests/group_references.cc
 )
-target_include_directories(test BEFORE PRIVATE .)
-target_link_libraries(test boost_unit_test_framework)
+target_include_directories(factory_test BEFORE PRIVATE .)
+target_link_libraries(factory_test boost_unit_test_framework)
+add_test(NAME test COMMAND factory_test)
 
 add_executable(example examples/example.cc)
 target_include_directories(example BEFORE PRIVATE .)
