@@ -251,4 +251,20 @@ BOOST_AUTO_TEST_CASE(PlainInspection) {
   BOOST_CHECK_EQUAL(fct->val(), (*fct).val());
 }
 
+BOOST_AUTO_TEST_CASE(ConstructReturnsNewObject) {
+  factory_t fct;
+
+  plain_base *new_object = fct.construct<plain_child_x>(10);
+
+  BOOST_REQUIRE(new_object != nullptr);
+  BOOST_REQUIRE_EQUAL(new_object, fct.get_ptr());
+  BOOST_CHECK_EQUAL(10, new_object->val());
+
+  new_object = fct.construct<plain_child_1>();
+
+  BOOST_REQUIRE(new_object != nullptr);
+  BOOST_REQUIRE_EQUAL(new_object, fct.get_ptr());
+  BOOST_CHECK_EQUAL(1, new_object->val());
+}
+
 BOOST_AUTO_TEST_SUITE_END()

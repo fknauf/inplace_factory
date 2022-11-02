@@ -137,4 +137,27 @@ BOOST_AUTO_TEST_CASE(MultiMoveAssign) {
   BOOST_CHECK_EQUAL(fct3->val(), SANDWICH);
 }
 
+BOOST_AUTO_TEST_CASE(MultiConstructReturnsNewObject) {
+  factory_t fct;
+  multi_base *ptr = nullptr;
+
+  ptr = fct.construct<multi_front>();
+
+  BOOST_REQUIRE(ptr != nullptr);
+  BOOST_REQUIRE_EQUAL(ptr, fct.get_ptr());
+  BOOST_CHECK_EQUAL(ptr->val(), FRONT);
+
+  ptr = fct.construct<multi_back>();
+
+  BOOST_REQUIRE(ptr != nullptr);
+  BOOST_REQUIRE_EQUAL(ptr, fct.get_ptr());
+  BOOST_CHECK_EQUAL(ptr->val(), BACK);
+
+  ptr = fct.construct<multi_sandwich>();
+
+  BOOST_REQUIRE(ptr != nullptr);
+  BOOST_REQUIRE_EQUAL(ptr, fct.get_ptr());
+  BOOST_CHECK_EQUAL(ptr->val(), SANDWICH);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

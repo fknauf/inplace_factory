@@ -71,10 +71,12 @@ namespace inplace {
 
     template<typename T, typename... Args>
     requires allowed_type<T>
-    void construct(Args&&... args) {
+    base_type *construct(Args&&... args) {
       clear();
       obj_ptr_ = construct_backend<T>::construct(storage(), std::forward<Args>(args)...);
       cpmov_handler_.template set_type<T>();
+
+      return obj_ptr_;
     }
 
     bool is_initialized() const noexcept {
