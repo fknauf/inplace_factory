@@ -120,22 +120,15 @@ namespace inplace {
   private:
     template<typename T, bool, bool> friend struct detail::copy_move_semantics;
 
-    template<typename T, bool = std::is_move_constructible_v<T>>
+    template<typename T>
     struct construct_backend {
       template<typename... Args>
       static void construct(void *place, Args&&... args) {
         new(place) T(std::forward<Args>(args)...);
       }
-    };
 
-    // support move semantics for non-moveable types: fallback to copy.
-    template<typename T>
-    struct construct_backend<T, false> {
-      template<typename... Args>
-      static void construct(void *place, Args&&... args) {
-        new(place) T(std::forward<Args>(args)...);
-      }
-      static void construct(void *place, T &&other) {
+      // For non-moveable types: move construction falls back to copy
+      static void construct(void *place, T &&other) requires (!std::is_move_constructible_v<T>) {
         new(place) T(other);
       }
     };
