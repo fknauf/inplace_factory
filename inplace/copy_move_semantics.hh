@@ -3,14 +3,36 @@
 
 #include <utility>
 
+// Copy/Move semantics encapsulation for the factory type.
+// This is a little bit messy because the set of possible types may contain any mixture of
+// types that support or don't support copy and/or move construction.
+//
+// Generally, we try to support the maximum possible set of operations. That is:
+//
+// 1. Support copy construction only if all types support copy construction
+// 2. Support move construction if all types support copy or move construction
+// 3. Fall back on copy construction if the factory supports move but the concrete
+//    type in it only supports copy construction
+
 namespace inplace {
   namespace detail {
-    template<typename T, bool, bool> struct copy_move_semantics {
+    // Not all types support copy, not all types support move
+    // Factory supports neither copy or move.
+    //
+    // copy_move_semantics does nothing.
+    template<typename T,
+             bool enable_copy,
+             bool enable_move>
+    struct copy_move_semantics {
       template<typename>
       void set_type() { }
       void clear   () { }
     };
 
+    // All types support copy, no type supports move.
+    // Factory will support move but internally use copy construction to achieve it.
+    //
+    // copy_move_semantics stores a function pointer to a type-specific copy function.
     template<typename factory_type> class copy_move_semantics<factory_type, true, false> {
     public:
       template<typename T>
@@ -26,9 +48,13 @@ namespace inplace {
 
       template<typename T>
       static void copy_impl (factory_type const &from, factory_type &to) { to.template construct<T>(*static_cast<T const *>(from.storage())); }
-      static void copy_empty(factory_type const &    , factory_type &to) { to.clear(); }
+      static void copy_empty(factory_type const &    , factory_type &to) { to.clear(); } // copy from an empty factory.
     };
 
+    // All types support move, not all types support copy
+    // Factory will support move but not copy.
+    //
+    // copy_move_semantics stores a function pointer to a type-specific move function.
     template<typename factory_type> class copy_move_semantics<factory_type, false, true> {
     public:
       template<typename T>
@@ -42,9 +68,13 @@ namespace inplace {
 
       template<typename T>
       static void move_impl (factory_type &&from, factory_type &to) { to.template construct<T>(std::move(*static_cast<T *>(from.storage()))); }
-      static void move_empty(factory_type &&    , factory_type &to) { to.clear(); }
+      static void move_empty(factory_type &&    , factory_type &to) { to.clear(); } // move from an empty factory
     };
 
+    // All types support copy, some types support move.
+    // Factory supports copy and move, and it will use proper move semantics when available.
+    //
+    // copy_move_semantics uses the copy-only and move-only cases of itself to provide both operations
     template<typename factory_type> class copy_move_semantics<factory_type, true, true> {
     public:
       void clear() {
