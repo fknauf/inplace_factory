@@ -38,6 +38,7 @@ add_executable(factory_test
 )
 target_include_directories(factory_test BEFORE PRIVATE .)
 target_link_libraries(factory_test boost_unit_test_framework)
+target_compile_options(factory_test PRIVATE -Wno-self-assign-overloaded)
 add_test(NAME test COMMAND factory_test)
 
 add_executable(example examples/example.cc)
