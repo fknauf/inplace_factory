@@ -23,9 +23,17 @@ namespace inplace {
     };
 
     // Type-traits to decide whether and how to offer copy/move semantics.
-    template<typename... possible_types>
-    inline constexpr bool require_copy_semantics_v = std::conjunction_v<std::is_copy_constructible<possible_types>...>;
+    // Offer: What the factory supports from the outside
+    // Require: what the copy_move_semantics in the background must handle.
 
+    // Copy: Offered when all possible types support copy; required in the same case.
+    template<typename... possible_types>
+    inline constexpr bool offer_copy_semantics_v = std::conjunction_v<std::is_copy_constructible<possible_types>...>;
+
+    template<typename... possible_types>
+    inline constexpr bool require_copy_semantics_v = offer_copy_semantics_v<possible_types...>;
+
+    // Move: Offered when all possible types support move or copy, required when at least one type supports move.
     template<typename... possible_types>
     inline constexpr bool offer_move_semantics_v = std::conjunction_v<trait_or<std::is_move_constructible,
                                                                                std::is_copy_constructible>::template trait<possible_types>...>;

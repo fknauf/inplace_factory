@@ -14,12 +14,7 @@ namespace inplace {
   // This is useful when the overhead of dynamic allocation has to be avoided but runtime polymorphy
   // is still desired.
   template<typename base_type, std::derived_from<base_type>... possible_types>
-  class factory
-    // enable EBO when possible
-    : private detail::copy_move_semantics<factory<base_type, possible_types...>,
-                                          detail::require_copy_semantics_v<possible_types...>,
-                                          detail::require_move_semantics_v<possible_types...>>
-  {
+  class factory {
     static_assert(sizeof...(possible_types) > 0, "possible_types is empty");
 
   private:
@@ -28,8 +23,13 @@ namespace inplace {
   public:
     factory() noexcept = default;
 
-    factory(factory const &other) requires detail::require_copy_semantics_v<possible_types...> { *this =                       other ; }
-    factory(factory      &&other) requires detail::  offer_move_semantics_v<possible_types...> { *this = std::forward<factory>(other); }
+    factory(factory const &other) requires detail::offer_copy_semantics_v<possible_types...> {
+      *this = other;
+    }
+
+    factory(factory &&other) requires detail::offer_move_semantics_v<possible_types...> {
+      *this = std::forward<factory>(other);
+    }
 
     template<typename... Args>
     factory(std::invocable<factory&, Args...> auto &&f, Args&&... args) {
@@ -38,9 +38,9 @@ namespace inplace {
 
     // operator= cannot sensibly use the value types; operator= because the other factory may contain a different type,
     // so we always use constructors for assignment.
-    factory &operator=(factory const &other) requires detail::require_copy_semantics_v<possible_types...> {
+    factory &operator=(factory const &other) requires detail::offer_copy_semantics_v<possible_types...> {
       if(&other != this) {
-        other.cpmov_type::do_copy(other, *this);
+        other.cpmov_handler_.do_copy(other, *this);
       }
 
       return *this;
@@ -48,7 +48,7 @@ namespace inplace {
 
     factory &operator=(factory &&other) requires detail::offer_move_semantics_v<possible_types...>  {
       if(&other != this) {
-        other.cpmov_type::do_move(std::forward<factory>(other), *this);
+        other.cpmov_handler_.do_move(std::forward<factory>(other), *this);
         other.clear();
       }
 
@@ -63,7 +63,7 @@ namespace inplace {
       if(obj_ptr_) {
         obj_ptr_->~base_type();
         obj_ptr_ = nullptr;
-        cpmov_type::clear();
+        cpmov_handler_.clear();
       }
     }
 
@@ -74,7 +74,7 @@ namespace inplace {
       construct_backend<T>::construct(storage(), std::forward<Args>(args)...);
 
       obj_ptr_ = static_cast<T*>(storage());
-      cpmov_type::template set_type<T>();
+      cpmov_handler_.template set_type<T>();
     }
 
     bool is_initialized() const noexcept {
@@ -128,6 +128,9 @@ namespace inplace {
 
     storage_type  storage_;
     base_type    *obj_ptr_ = nullptr;
+
+    // cpmov_handler_ is empty when neither copy nor move are supported.
+    [[no_unique_address]] cpmov_type cpmov_handler_;
   };
 }
 
