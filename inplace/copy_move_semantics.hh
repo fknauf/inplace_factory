@@ -20,11 +20,11 @@ namespace inplace {
     // Factory supports neither copy or move.
     //
     // copy_move_semantics does nothing.
-    template<typename T,
+    template<typename factory_type,
              bool enable_copy,
              bool enable_move>
     struct copy_move_semantics {
-      template<typename>
+      template<typename T> requires factory_type::template allowed_type<T>
       void set_type() { }
       void clear   () { }
     };
@@ -35,7 +35,7 @@ namespace inplace {
     // copy_move_semantics stores a function pointer to a type-specific copy function.
     template<typename factory_type> class copy_move_semantics<factory_type, true, false> {
     public:
-      template<typename T>
+      template<typename T> requires factory_type::template allowed_type<T>
       void set_type() { do_copy_ptr = &copy_move_semantics::copy_impl<T>; }
       void clear   () { do_copy_ptr = &copy_move_semantics::copy_empty  ; }
 
@@ -46,7 +46,7 @@ namespace inplace {
     private:
       void (*do_copy_ptr)(factory_type const &from, factory_type &to) = copy_empty;
 
-      template<typename T>
+      template<typename T> requires factory_type::template allowed_type<T>
       static void copy_impl (factory_type const &from, factory_type &to) { to.template construct<T>(*static_cast<T const *>(from.storage())); }
       static void copy_empty(factory_type const &    , factory_type &to) { to.clear(); } // copy from an empty factory.
     };
@@ -57,7 +57,7 @@ namespace inplace {
     // copy_move_semantics stores a function pointer to a type-specific move function.
     template<typename factory_type> class copy_move_semantics<factory_type, false, true> {
     public:
-      template<typename T>
+      template<typename T> requires factory_type::template allowed_type<T>
       void set_type() { do_move_ptr = &copy_move_semantics::move_impl<T>; }
       void clear   () { do_move_ptr = &copy_move_semantics::move_empty  ; }
 
@@ -66,7 +66,7 @@ namespace inplace {
     private:
       void (*do_move_ptr)(factory_type &&from, factory_type &to) = move_empty;
 
-      template<typename T>
+      template<typename T> requires factory_type::template allowed_type<T>
       static void move_impl (factory_type &&from, factory_type &to) { to.template construct<T>(std::move(*static_cast<T *>(from.storage()))); }
       static void move_empty(factory_type &&    , factory_type &to) { to.clear(); } // move from an empty factory
     };
@@ -82,7 +82,8 @@ namespace inplace {
         ms_.clear();
       }
 
-      template<typename T> void set_type() {
+      template<typename T> requires factory_type::template allowed_type<T>
+      void set_type() {
         cs_.template set_type<T>();
         ms_.template set_type<T>();
       }

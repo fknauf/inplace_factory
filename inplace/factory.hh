@@ -38,12 +38,15 @@ namespace inplace {
   // is going to use, and we'll disable the undesirables there.
   template<typename base_type, std::derived_from<base_type>... possible_types>
   class factory
-    // EBO, wenn möglich.
+    // enable EBO when possible
     : private detail::copy_move_semantics<factory<base_type, possible_types...>,
                                           detail::require_copy_semantics_v<possible_types...>,
                                           detail::require_move_semantics_v<possible_types...>>
   {
     static_assert(sizeof...(possible_types) > 0, "possible_types is empty");
+
+  private:
+    template<typename T> static constexpr bool allowed_type = std::disjunction_v<std::is_same<T, possible_types>...>;
 
   public:
     factory() noexcept = default;
@@ -88,7 +91,7 @@ namespace inplace {
     }
 
     template<typename T, typename... Args>
-    requires std::disjunction_v<std::is_same<T, possible_types>...>
+    requires allowed_type<T>
     void construct(Args&&... args) {
       clear();
       construct_backend<T>::construct(storage(), std::forward<Args>(args)...);
