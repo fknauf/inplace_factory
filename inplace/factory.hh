@@ -8,34 +8,11 @@
 #include <type_traits>
 #include <utility>
 
-// In-place factory, i.e. sort of a polymorphic variant.
-//
-// This is useful when the overhead of dynamic allocation has to be avoided but runtime polymorphy
-// is still desired.
-
 namespace inplace {
-  namespace detail {
-    template<template<typename> class... input_traits>
-    struct trait_or {
-      template<typename T> using trait = std::disjunction<input_traits<T>...>;
-    };
-
-    // Type-traits to decide whether and how to offer copy/move semantics. See copy_move_semantics.hh for details
-
-    template<typename... possible_types>
-    inline constexpr bool require_copy_semantics_v = std::conjunction_v<std::is_copy_constructible<possible_types>...>;
-
-    template<typename... possible_types>
-    inline constexpr bool offer_move_semantics_v = std::conjunction_v<trait_or<std::is_move_constructible,
-                                                                               std::is_copy_constructible>::template trait<possible_types>...>;
-
-    template<typename... possible_types>
-    inline constexpr bool require_move_semantics_v = offer_move_semantics_v<possible_types...> && std::disjunction_v<std::is_move_constructible<possible_types>...>;
-  }
-
-  // Most of the implementation is in factory_base. The reason that this is a class template of its own is constructor visibility
-  // which is handled by the frontend. This avoids SFINAE hackery; factory_base just enables more operations than the frontend
-  // is going to use, and we'll disable the undesirables there.
+  // In-place factory, i.e. sort of a polymorphic variant.
+  //
+  // This is useful when the overhead of dynamic allocation has to be avoided but runtime polymorphy
+  // is still desired.
   template<typename base_type, std::derived_from<base_type>... possible_types>
   class factory
     // enable EBO when possible

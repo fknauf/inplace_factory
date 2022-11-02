@@ -1,6 +1,7 @@
 #ifndef INCLUDED_COPY_MOVE_SEMANTICS_HH
 #define INCLUDED_COPY_MOVE_SEMANTICS_HH
 
+#include <type_traits>
 #include <utility>
 
 // Copy/Move semantics encapsulation for the factory type.
@@ -16,6 +17,23 @@
 
 namespace inplace {
   namespace detail {
+    template<template<typename> class... input_traits>
+    struct trait_or {
+      template<typename T> using trait = std::disjunction<input_traits<T>...>;
+    };
+
+    // Type-traits to decide whether and how to offer copy/move semantics.
+    template<typename... possible_types>
+    inline constexpr bool require_copy_semantics_v = std::conjunction_v<std::is_copy_constructible<possible_types>...>;
+
+    template<typename... possible_types>
+    inline constexpr bool offer_move_semantics_v = std::conjunction_v<trait_or<std::is_move_constructible,
+                                                                               std::is_copy_constructible>::template trait<possible_types>...>;
+
+    template<typename... possible_types>
+    inline constexpr bool require_move_semantics_v = offer_move_semantics_v<possible_types...> && std::disjunction_v<std::is_move_constructible<possible_types>...>;
+
+
     // Not all types support copy, not all types support move
     // Factory supports neither copy or move.
     //
