@@ -25,22 +25,17 @@ namespace inplace {
     // Type-traits to decide whether and how to offer copy/move semantics.
     // Offer: What the factory supports from the outside
     // Require: what the copy_move_semantics in the background must handle.
-
-    // Copy: Offered when all possible types support copy; required in the same case.
     template<typename... possible_types>
-    inline constexpr bool offer_copy_semantics_v = std::conjunction_v<std::is_copy_constructible<possible_types>...>;
+    struct copy_move_traits {
+      // Copy: Offered when all possible types support copy; required in the same case.
+      static bool constexpr offer_copy   = std::conjunction_v<std::is_copy_constructible<possible_types>...>;
+      static bool constexpr require_copy = offer_copy;
 
-    template<typename... possible_types>
-    inline constexpr bool require_copy_semantics_v = offer_copy_semantics_v<possible_types...>;
-
-    // Move: Offered when all possible types support move or copy, required when at least one type supports move.
-    template<typename... possible_types>
-    inline constexpr bool offer_move_semantics_v = std::conjunction_v<trait_or<std::is_move_constructible,
-                                                                               std::is_copy_constructible>::template trait<possible_types>...>;
-
-    template<typename... possible_types>
-    inline constexpr bool require_move_semantics_v = offer_move_semantics_v<possible_types...> && std::disjunction_v<std::is_move_constructible<possible_types>...>;
-
+      // Move: Offered when all possible types support move or copy, required when at least one type supports move.
+      static bool constexpr offer_move   = std::conjunction_v<trait_or<std::is_move_constructible,
+                                                                       std::is_copy_constructible>::template trait<possible_types>...>;
+      static bool constexpr require_move = offer_move && std::disjunction_v<std::is_move_constructible<possible_types>...>;
+    };
 
     // Not all types support copy, not all types support move
     // Factory supports neither copy or move.

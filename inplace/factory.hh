@@ -20,16 +20,19 @@ namespace inplace {
     static_assert(sizeof...(possible_types) > 0, "possible_types is empty");
 
   private:
-    template<typename T> static constexpr bool allowed_type = std::disjunction_v<std::is_same<T, possible_types>...>;
+    using cpmov = detail::copy_move_traits<possible_types...>;
+
+    template<typename T>
+    static constexpr bool allowed_type = std::disjunction_v<std::is_same<T, possible_types>...>;
 
   public:
     factory() noexcept = default;
 
-    factory(factory const &other) requires detail::offer_copy_semantics_v<possible_types...> {
+    factory(factory const &other) requires cpmov::offer_copy {
       *this = other;
     }
 
-    factory(factory &&other) requires detail::offer_move_semantics_v<possible_types...> {
+    factory(factory &&other) requires cpmov::offer_move {
       *this = std::forward<factory>(other);
     }
 
@@ -40,7 +43,7 @@ namespace inplace {
 
     // operator= cannot sensibly use the value types; operator= because the other factory may contain a different type,
     // so we always use constructors for assignment.
-    factory &operator=(factory const &other) requires detail::offer_copy_semantics_v<possible_types...> {
+    factory &operator=(factory const &other) requires cpmov::offer_copy {
       if(&other != this) {
         other.cpmov_handler_.do_copy(other, *this);
       }
@@ -48,7 +51,7 @@ namespace inplace {
       return *this;
     }
 
-    factory &operator=(factory &&other) requires detail::offer_move_semantics_v<possible_types...>  {
+    factory &operator=(factory &&other) requires cpmov::offer_move  {
       if(&other != this) {
         other.cpmov_handler_.do_move(std::forward<factory>(other), *this);
         other.clear();
@@ -62,7 +65,7 @@ namespace inplace {
     }
 
     void clear() noexcept {
-      if(obj_ptr_) {
+      if(is_initialized()) {
         obj_ptr_->~base_type();
         obj_ptr_ = nullptr;
         cpmov_handler_.clear();
@@ -131,10 +134,7 @@ namespace inplace {
 
     // cpmov_handler_ is empty when neither copy nor move are supported.
     [[no_unique_address]]
-    detail::copy_move_semantics<factory,
-                                detail::require_copy_semantics_v<possible_types...>,
-                                detail::require_move_semantics_v<possible_types...>>
-    cpmov_handler_;
+    detail::copy_move_semantics<factory, cpmov::require_copy, cpmov::require_move> cpmov_handler_;
   };
 }
 
